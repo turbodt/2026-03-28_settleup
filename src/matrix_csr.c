@@ -35,14 +35,17 @@ struct MatrixCSR {
 };
 
 
+static CSRErr matrix_prod_nn(MatrixCSR const *, MatrixCSR const *, MatrixCSR *);
 static CSRErr matrix_value_remove(MatrixCSR *, size_t row, size_t col);
 static CSRErr matrix_value_insert(MatrixCSR *, size_t row, size_t col, MATRIX_CSR_SCALAR_T);
+static CSRErr matrix_entry_insert_at(MatrixCSR *, size_t entry_index, Entry);
 static void matrix_toggle_transpose_bool(MatrixCSR *);
 static void matrix_transpose_values(MatrixCSR *);
 static CSRErr entry_insert(List *, size_t entry_index, Entry);
 static void entry_remove(List *, size_t entry_index);
 static void entry_sort_by_row(List *, size_t start, size_t end);
 static Entry * entry_get_at(MatrixCSR *, size_t row, size_t col);
+static Entry const * entry_getc_at(MatrixCSR const *, size_t row, size_t col);
 static size_t entry_index_get_at(MatrixCSR const *, size_t row, size_t col);
 static size_t entry_index_get_with_col(Entry *,size_t col, size_t start, size_t end);
 static void entry_swap(Entry *, Entry *);
@@ -124,12 +127,12 @@ inline size_t matrix_csr_get_row_count(MatrixCSR const *m) {
 };
 
 
-MATRIX_CSR_SCALAR_T matrix_csr_get(
-    MatrixCSR const *m,
-    size_t row,
-    size_t col
-) {
+MATRIX_CSR_SCALAR_T matrix_csr_get(MatrixCSR const *m, size_t row, size_t col) {
     if (__MATRIX_CSR_IS_TRANSPOSED(m)) size_swap(&row, &col);
+
+    if (row >= m->row_count || col >= m->col_count) {
+        return MATRIX_CSR_SCALAR_ZERO;
+    }
 
     Entry const *entry = entry_get_at((MatrixCSR *)m, row, col);
     if (!entry) {
@@ -147,11 +150,15 @@ CSRErr matrix_csr_set(
 ) {
     if (__MATRIX_CSR_IS_TRANSPOSED(m)) size_swap(&row, &col);
 
+    if (row >= m->row_count || col >= m->col_count) {
+        return CSR_ERR__OUT_INDEX;
+    }
+
     Entry * entry = entry_get_at(m, row, col);
     int new_value_is_zero = MATRIX_CSR_SCALAR_IS_ZERO(value);
 
     if (!entry && new_value_is_zero) {
-        return MATRIX_CSR__OK;
+        return CSR_ERR__OK;
     } else if (!entry && !new_value_is_zero) {
         return matrix_value_insert(m, row, col, value);
     } else if (entry && new_value_is_zero) {
@@ -160,7 +167,7 @@ CSRErr matrix_csr_set(
         entry->value = value;
     }
 
-    return MATRIX_CSR__OK;
+    return CSR_ERR__OK;
 };
 
 
@@ -171,21 +178,10 @@ inline void matrix_csr_transpose(MatrixCSR *m) {
 
 
 MatrixCSR * matrix_csr_prod(MatrixCSR const *A, MatrixCSR const *B) {
+    CSRErr err;
     size_t const common_count = matrix_csr_get_col_count(A);
     if (common_count != matrix_csr_get_row_count(B)) {
         goto MatrixProdDimErr;
-    }
-    if (__MATRIX_CSR_IS_TRANSPOSED(A)) {
-        // I dont like this non-const casting...
-        matrix_transpose_values((MatrixCSR *)A);
-        matrix_toggle_transpose_bool((MatrixCSR *)A);
-        return matrix_csr_prod(A, B);
-    }
-    if (!__MATRIX_CSR_IS_TRANSPOSED(B)) {
-        // I dont like this non-const casting...
-        matrix_transpose_values((MatrixCSR *)B);
-        matrix_toggle_transpose_bool((MatrixCSR *)B);
-        return matrix_csr_prod(A, B);
     }
 
     size_t const row_count = matrix_csr_get_row_count(A);
@@ -196,44 +192,22 @@ MatrixCSR * matrix_csr_prod(MatrixCSR const *A, MatrixCSR const *B) {
         goto MatrixProdAllocErr;
     }
 
-    ListErr err;
-    for (size_t row = 0; row < row_count; row++) {
-        size_t A_start = *(size_t *)list_atc(&A->row_indexes, row);
-        size_t const A_end = *(size_t *)list_atc(&A->row_indexes, row+1);
-
-        for (size_t col = 0; col < col_count; col++) {
-            size_t B_start = *(size_t *)list_atc(&B->row_indexes, col);
-            size_t const B_end = *(size_t *)list_atc(&B->row_indexes, col+1);
-
-            MATRIX_CSR_SCALAR_T value = MATRIX_CSR_SCALAR_ZERO;
-
-            while  (A_start < A_end && B_start < B_end) {
-                Entry const *A_entry = list_atc(&A->entries, A_start);
-                Entry const *B_entry = list_atc(&B->entries, B_start);
-
-                if (A_entry->col_index < B_entry->col_index) {
-                    A_start++;
-                } else if (A_entry->col_index > B_entry->col_index) {
-                    B_start++;
-                } else {
-                    value = MATRIX_CSR_SCALAR_SUM(
-                        value,
-                        MATRIX_CSR_SCALAR_PROD(A_entry->value, B_entry->value)
-                    );
-                    A_start++;
-                    B_start++;
-                }
-            }
-
-            if (MATRIX_CSR_SCALAR_IS_ZERO(value)) {
-                continue;
-            }
-
-            err = matrix_csr_set(C, row, col, value);
-            if (err != MATRIX_CSR__OK) {
-                goto MatrixProdEntryAllocErr;
-            }
+    if (__MATRIX_CSR_IS_TRANSPOSED(A)) {
+        if (__MATRIX_CSR_IS_TRANSPOSED(B)) {
+            // TODO
+        } else {
+            // TODO
         }
+    } else {
+        if (__MATRIX_CSR_IS_TRANSPOSED(B)) {
+            // TODO
+        } else {
+            err = matrix_prod_nn(A, B, C);
+        }
+    }
+
+    if (err) {
+        goto MatrixProdEntryAllocErr;
     }
 
     return C;
@@ -246,35 +220,82 @@ MatrixProdDimErr:
 };
 
 
-CSRErr matrix_value_insert(
+CSRErr matrix_prod_nn(
+    MatrixCSR const *A,
+    MatrixCSR const *B,
+    MatrixCSR *C
+) {
+    CSRErr err = CSR_ERR__OK;
+    size_t const row_count = matrix_csr_get_row_count(A);
+    size_t const col_count = matrix_csr_get_col_count(B);
+
+    for (size_t row = 0; row < row_count; row++) {
+        size_t const A_start = *(size_t *)list_atc(&A->row_indexes, row);
+        size_t const A_end = *(size_t *)list_atc(&A->row_indexes, row+1);
+
+        for (size_t col = 0; col < col_count; col++) {
+            MATRIX_CSR_SCALAR_T value = MATRIX_CSR_SCALAR_ZERO;
+
+            for (size_t A_curr = A_start; A_curr < A_end; A_curr++) {
+                Entry const *A_entry = list_atc(&A->entries, A_curr);
+                Entry const *B_entry = entry_getc_at(B, A_entry->col_index,col);
+                if (!B_entry) {
+                    continue;
+                }
+                value = MATRIX_CSR_SCALAR_SUM(
+                    value,
+                    MATRIX_CSR_SCALAR_PROD(A_entry->value, B_entry->value)
+                );
+            }
+
+            if (MATRIX_CSR_SCALAR_IS_ZERO(value)) {
+                continue;
+            }
+
+            Entry entry = {.value=value, .col_index=col, .row_index=row};
+            err = matrix_entry_insert_at(C, list_get_count(&C->entries), entry);
+            if (err != CSR_ERR__OK) {
+                return err;
+            }
+        }
+    }
+    return CSR_ERR__OK;
+}
+
+
+
+inline CSRErr matrix_value_insert(
     MatrixCSR *m,
     size_t row,
     size_t col,
     MATRIX_CSR_SCALAR_T value
 ) {
-    CSRErr err;
-    size_t entry_index = entry_index_get_at(m, row, col);
-    err = entry_insert(
-        &m->entries,
-        entry_index,
-        (Entry){.value=value, .col_index=col, .row_index=row}
-    );
+    size_t index = entry_index_get_at(m, row, col);
+    Entry entry = {.value=value, .col_index=col, .row_index=row};
+    return matrix_entry_insert_at(m, index, entry);
+}
 
-    if (err != MATRIX_CSR__OK) {
+
+CSRErr matrix_entry_insert_at(MatrixCSR *m, size_t index, Entry entry) {
+    CSRErr err;
+
+    err = entry_insert(&m->entries, index, entry);
+
+    if (err != CSR_ERR__OK) {
         return err;
     }
 
     size_t row_count = m->row_count;
-    for (size_t i = row; i < row_count; i++) {
+    for (size_t i = entry.row_index; i < row_count; i++) {
         *(size_t*)list_at(&m->row_indexes, i + 1) += 1;
     }
 
     size_t col_count = m->col_count;
-    for (size_t j = col; j < col_count; j++) {
+    for (size_t j = entry.col_index; j < col_count; j++) {
         *(size_t*)list_at(&m->col_indexes, j + 1) += 1;
     }
 
-    return MATRIX_CSR__OK;
+    return CSR_ERR__OK;
 };
 
 
@@ -292,12 +313,13 @@ CSRErr matrix_value_remove(
     }
 
     size_t col_count = m->col_count;
-    for (size_t j = col; j < col_count; col++) {
+    for (size_t j = col; j < col_count; j++) {
         *(size_t*)list_at(&m->col_indexes, j + 1) -= 1;
     }
 
-    return MATRIX_CSR__OK;
+    return CSR_ERR__OK;
 }
+
 
 void matrix_toggle_transpose_bool(MatrixCSR *m) {
     uint32_t mask = 1 << __MATRIX_CSR_BOOL__TRANSPOSED_OFFSET;
@@ -323,14 +345,14 @@ void matrix_transpose_values(MatrixCSR *m) {
 CSRErr entry_insert(List *entries, size_t entry_index, Entry entry) {
     ListErr err = list_insert_at(entries, entry_index, 1);
     switch (err) {
-        case MATRIX_CSR__OK: break;
-        case LIST_ERR__ALLOC: return MATRIX_CSR__ALLOC;
-        default: return MATRIX_CSR__UNKNOWN;
+        case CSR_ERR__OK: break;
+        case LIST_ERR__ALLOC: return CSR_ERR__ALLOC;
+        default: return CSR_ERR__UNKNOWN;
     }
 
     *(Entry *)list_at(entries, entry_index) = entry;
 
-    return MATRIX_CSR__OK;
+    return CSR_ERR__OK;
 };
 
 
@@ -377,6 +399,11 @@ Entry * entry_get_at(MatrixCSR *m, size_t row, size_t col) {
         return NULL;
     }
     return entry;
+}
+
+
+inline Entry const * entry_getc_at(MatrixCSR const *m, size_t row, size_t col) {
+    return entry_get_at((MatrixCSR *)m, row, col);
 }
 
 

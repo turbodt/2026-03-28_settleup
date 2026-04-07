@@ -38,9 +38,10 @@
 typedef struct MatrixCSR MatrixCSR;
 typedef int CSRErr;
 enum {
-    MATRIX_CSR__OK = 0,
-    MATRIX_CSR__ALLOC = 1,
-    MATRIX_CSR__UNKNOWN = 7,
+    CSR_ERR__OK = 0,
+    CSR_ERR__ALLOC = 1,
+    CSR_ERR__OUT_INDEX = 2,
+    CSR_ERR__UNKNOWN = 7,
 };
 
 MatrixCSR * matrix_csr_make(size_t, size_t);

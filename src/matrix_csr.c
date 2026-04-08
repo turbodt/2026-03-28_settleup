@@ -298,6 +298,8 @@ CSRErr matrix_prod_nt(
                         value,
                         MATRIX_CSR_SCALAR_PROD(A_entry->value, B_entry->value)
                     );
+                    A_curr++;
+                    B_curr++;
                 }
             }
 

@@ -6,6 +6,8 @@
 #include "./matrix_csr.h"
 
 
+#define RED(s) "\x1b[31m" s "\x1b[0m"
+#define GREEN(s) "\x1b[32m" s "\x1b[0m"
 #define DEBUG(s) fprintf(stderr, "[%s:%d]: %s", __FILE__, __LINE__, ""#s)
 #define ASSERT(b) do { if (b) continue; DEBUG(); return 1; } while(0)
 #define ASSERT_NOT(b) ASSERT(!(b))
@@ -29,6 +31,11 @@ static int test_matrix_002(void);
 static int test_matrix_003(void);
 static int test_matrix_004(void);
 static int test_matrix_005(void);
+static int test_matrix_006(void);
+static int test_matrix_007(void);
+static int test_matrix_008(void);
+static int test_matrix_009(void);
+static int test_matrix_010(void);
 
 
 int main(void) {
@@ -40,6 +47,11 @@ int main(void) {
         {"Matrix 003", test_matrix_003},
         {"Matrix 004", test_matrix_004},
         {"Matrix 005", test_matrix_005},
+        {"Matrix 006", test_matrix_006},
+        {"Matrix 007", test_matrix_007},
+        {"Matrix 008", test_matrix_008},
+        {"Matrix 009", test_matrix_009},
+        {"Matrix 010", test_matrix_010},
         {.call=NULL},
     };
 
@@ -49,11 +61,11 @@ int main(void) {
         fflush(stdout);
 
         if (test.call()) {
-            printf(" Failed!\n");
-            return EXIT_FAILURE;
+            printf(" " RED("Failed") ". \n");
+        } else {
+            printf(" " GREEN("Success") ". \n");
         }
 
-        printf(" Success.\n");
     }
 
     return EXIT_SUCCESS;
@@ -335,6 +347,210 @@ int test_matrix_005(void) {
     matrix_csr_destroy(Zero);
     matrix_csr_destroy(A);
 
+    return 0;
+}
+
+
+int test_matrix_006(void) {
+    MatrixCSR *m = matrix_csr_make(3, 3);
+    ASSERT_NOT_NULL(m);
+
+    ASSERT_EQ(CSR_ERR__OUT_INDEX, matrix_csr_set(m, 3, 0, 1.0));
+    ASSERT_EQ(CSR_ERR__OUT_INDEX, matrix_csr_set(m, 100, 0, 1.0));
+
+    ASSERT_EQ(CSR_ERR__OUT_INDEX, matrix_csr_set(m, 0, 3, 1.0));
+
+    ASSERT_EQ(0.0, matrix_csr_get(m, 3, 3));
+    ASSERT_EQ(0.0, matrix_csr_get(m, 0, 10));
+
+    matrix_csr_transpose(m);
+
+    MatrixCSR *m2 = matrix_csr_make(2, 4);
+    matrix_csr_transpose(m2);
+
+    ASSERT_NOT(matrix_csr_set(m2, 3, 1, 5.0));
+    ASSERT_EQ(CSR_ERR__OUT_INDEX, matrix_csr_set(m2, 1, 3, 5.0));
+
+    matrix_csr_destroy(m);
+    matrix_csr_destroy(m2);
+    return 0;
+}
+
+
+int test_matrix_007(void) {
+    MatrixCSR *m = matrix_csr_make(3, 3);
+
+    ASSERT_NOT(matrix_csr_set(m, 0, 0, 1.0));
+    ASSERT_NOT(matrix_csr_set(m, 1, 1, 2.0));
+    ASSERT_NOT(matrix_csr_set(m, 2, 2, 3.0));
+
+    ASSERT_NOT(matrix_csr_set(m, 1, 1, 0.0));
+    ASSERT_EQ(0.0, matrix_csr_get(m, 1, 1));
+
+    ASSERT_NOT(matrix_csr_set(m, 0, 1, 0.0));
+
+    matrix_csr_destroy(m);
+    return 0;
+}
+
+
+int test_matrix_prod_007(void) {
+    MatrixCSR *A = matrix_csr_make(2, 3);
+    ASSERT_NOT(matrix_csr_set(A, 0, 0, 1.0));
+    ASSERT_NOT(matrix_csr_set(A, 0, 1, 2.0));
+    ASSERT_NOT(matrix_csr_set(A, 1, 1, 3.0));
+    ASSERT_NOT(matrix_csr_set(A, 1, 2, 4.0));
+
+    MatrixCSR *B = matrix_csr_make(3, 2);
+    ASSERT_NOT(matrix_csr_set(B, 0, 0, 2.0));
+    ASSERT_NOT(matrix_csr_set(B, 1, 0, 1.0));
+    ASSERT_NOT(matrix_csr_set(B, 1, 1, 3.0));
+    ASSERT_NOT(matrix_csr_set(B, 2, 1, 1.0));
+
+    MatrixCSR *C = matrix_csr_prod(A, B);
+    ASSERT_NOT_NULL(C);
+    ASSERT_EQ(2, matrix_csr_get_row_count(C));
+    ASSERT_EQ(2, matrix_csr_get_col_count(C));
+
+    ASSERT_EQ(4.0, matrix_csr_get(C, 0, 0));
+    ASSERT_EQ(6.0, matrix_csr_get(C, 0, 1));
+    ASSERT_EQ(3.0, matrix_csr_get(C, 1, 0));
+    ASSERT_EQ(13.0, matrix_csr_get(C, 1, 1));
+
+    matrix_csr_destroy(C);
+    matrix_csr_destroy(B);
+    matrix_csr_destroy(A);
+    return 0;
+}
+
+
+int test_matrix_008(void) {
+    MatrixCSR *A = matrix_csr_make(2, 3);
+    ASSERT_NOT(matrix_csr_set(A, 0, 0, 1.0));
+    ASSERT_NOT(matrix_csr_set(A, 0, 1, 2.0));
+    ASSERT_NOT(matrix_csr_set(A, 1, 2, 3.0));
+
+    MatrixCSR *B = matrix_csr_make(2, 3);
+    ASSERT_NOT(matrix_csr_set(B, 0, 0, 2.0));
+    ASSERT_NOT(matrix_csr_set(B, 0, 1, 1.0));
+    ASSERT_NOT(matrix_csr_set(B, 1, 1, 3.0));
+    ASSERT_NOT(matrix_csr_set(B, 1, 2, 1.0));
+    matrix_csr_transpose(B);
+
+    MatrixCSR *C = matrix_csr_prod(A, B);
+    ASSERT_NOT_NULL(C);
+
+    ASSERT_EQ(4.0, matrix_csr_get(C, 0, 0));
+
+    matrix_csr_destroy(C);
+    matrix_csr_destroy(B);
+    matrix_csr_destroy(A);
+    return 0;
+}
+
+
+int test_matrix_009(void) {
+    // A_orig = [1.0, 2.0]
+    //          [0.0, 0.0]
+    //          [0.0, 0.0]
+    MatrixCSR *A = matrix_csr_make(3, 2);
+    ASSERT_NOT(matrix_csr_set(A, 0, 0, 1.0));
+    ASSERT_NOT(matrix_csr_set(A, 0, 1, 2.0));
+    matrix_csr_transpose(A);
+
+    // B_orig = [1.0, 0.0]
+    //          [3.0, 0.0]
+    //          [0.0, 0.0]
+    MatrixCSR *B = matrix_csr_make(3, 2);
+    ASSERT_NOT(matrix_csr_set(B, 0, 0, 1.0));
+    ASSERT_NOT(matrix_csr_set(B, 1, 0, 3.0));
+
+    MatrixCSR *C = matrix_csr_prod(A, B);
+    ASSERT_NOT_NULL(C);
+    ASSERT_EQ(2, matrix_csr_get_row_count(C));
+    ASSERT_EQ(2, matrix_csr_get_col_count(C));
+
+    for (size_t row = 0; row < 2; row++) {
+        for (size_t col = 0; col < 2; col++) {
+            if (row == 0 && col == 0) {
+                ASSERT_EQ(1.0, matrix_csr_get(C, row, col));
+            } else if (row == 1 && col == 0) {
+                ASSERT_EQ(2.0, matrix_csr_get(C, row, col));
+            } else {
+                ASSERT_EQ(0.0, matrix_csr_get(C, row, col));
+            }
+        }
+    }
+
+    matrix_csr_destroy(C);
+    matrix_csr_destroy(B);
+    matrix_csr_destroy(A);
+    return 0;
+}
+
+
+int test_matrix_010(void) {
+    // A_orig = [1.0, 2.0, 0.0]
+    //          [0.0, 3.0, 4.0]
+    MatrixCSR *A = matrix_csr_make(2, 3);
+    ASSERT_NOT_NULL(A);
+    ASSERT_NOT(matrix_csr_set(A, 0, 0, 1.0));
+    ASSERT_NOT(matrix_csr_set(A, 0, 1, 2.0));
+    ASSERT_NOT(matrix_csr_set(A, 1, 1, 3.0));
+    ASSERT_NOT(matrix_csr_set(A, 1, 2, 4.0));
+    matrix_csr_transpose(A);
+
+    // B_orig = [1.0, 0.0]
+    //          [2.0, 0.0]
+    //          [0.0, 1.0]
+    //          [0.0, 3.0]
+    MatrixCSR *B = matrix_csr_make(4, 2);
+    ASSERT_NOT_NULL(B);
+    ASSERT_NOT(matrix_csr_set(B, 0, 0, 1.0));
+    ASSERT_NOT(matrix_csr_set(B, 1, 0, 2.0));
+    ASSERT_NOT(matrix_csr_set(B, 2, 1, 1.0));
+    ASSERT_NOT(matrix_csr_set(B, 3, 1, 3.0));
+    matrix_csr_transpose(B);
+
+    MatrixCSR *C = matrix_csr_prod(A, B);
+    ASSERT_NOT_NULL(C);
+    printf("\n");
+    printf("A = \n");
+    matrix_csr_print(A);
+    printf("B = \n");
+    matrix_csr_print(B);
+    printf("C = \n");
+    matrix_csr_print(C);
+    ASSERT_EQ(3, matrix_csr_get_row_count(C));
+    ASSERT_EQ(4, matrix_csr_get_col_count(C));
+
+    for (size_t row = 0; row < 3; row++) {
+        for (size_t col = 0; col < 4; col++) {
+            if (row == 0 && col == 0) {
+                ASSERT_EQ(1.0, matrix_csr_get(C, row, col));
+            } else if (row == 0 && col == 1) {
+                ASSERT_EQ(2.0, matrix_csr_get(C, row, col));
+            } else if (row == 1 && col == 0) {
+                ASSERT_EQ(2.0, matrix_csr_get(C, row, col));
+            } else if (row == 1 && col == 1) {
+                ASSERT_EQ(4.0, matrix_csr_get(C, row, col));
+            } else if (row == 1 && col == 2) {
+                ASSERT_EQ(3.0, matrix_csr_get(C, row, col));
+            } else if (row == 1 && col == 3) {
+                ASSERT_EQ(9.0, matrix_csr_get(C, row, col));
+            } else if (row == 2 && col == 2) {
+                ASSERT_EQ(4.0, matrix_csr_get(C, row, col));
+            } else if (row == 2 && col == 3) {
+                ASSERT_EQ(12.0, matrix_csr_get(C, row, col));
+            } else {
+                ASSERT_EQ(0.0, matrix_csr_get(C, row, col));
+            }
+        }
+    }
+
+    matrix_csr_destroy(C);
+    matrix_csr_destroy(B);
+    matrix_csr_destroy(A);
     return 0;
 }
 

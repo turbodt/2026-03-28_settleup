@@ -36,6 +36,7 @@ struct MatrixCSR {
 
 
 static CSRErr matrix_prod_nn(MatrixCSR const *, MatrixCSR const *, MatrixCSR *);
+static CSRErr matrix_prod_nt(MatrixCSR const *, MatrixCSR const *, MatrixCSR *);
 static CSRErr matrix_value_remove(MatrixCSR *, size_t row, size_t col);
 static CSRErr matrix_value_insert(MatrixCSR *, size_t row, size_t col, MATRIX_CSR_SCALAR_T);
 static CSRErr matrix_entry_insert_at(MatrixCSR *, size_t entry_index, Entry);
@@ -200,7 +201,7 @@ MatrixCSR * matrix_csr_prod(MatrixCSR const *A, MatrixCSR const *B) {
         }
     } else {
         if (__MATRIX_CSR_IS_TRANSPOSED(B)) {
-            // TODO
+            err = matrix_prod_nt(A, B, C);
         } else {
             err = matrix_prod_nn(A, B, C);
         }
@@ -226,8 +227,8 @@ CSRErr matrix_prod_nn(
     MatrixCSR *C
 ) {
     CSRErr err = CSR_ERR__OK;
-    size_t const row_count = matrix_csr_get_row_count(A);
-    size_t const col_count = matrix_csr_get_col_count(B);
+    size_t const row_count = matrix_csr_get_row_count(C);
+    size_t const col_count = matrix_csr_get_col_count(C);
 
     for (size_t row = 0; row < row_count; row++) {
         size_t const A_start = *(size_t *)list_atc(&A->row_indexes, row);
@@ -262,6 +263,57 @@ CSRErr matrix_prod_nn(
     return CSR_ERR__OK;
 }
 
+
+CSRErr matrix_prod_nt(
+    MatrixCSR const *A,
+    MatrixCSR const *B,
+    MatrixCSR *C
+) {
+    CSRErr err = CSR_ERR__OK;
+    size_t const row_count = matrix_csr_get_row_count(C);
+    size_t const col_count = matrix_csr_get_col_count(C);
+
+    for (size_t row = 0; row < row_count; row++) {
+        size_t const A_start = *(size_t *)list_atc(&A->row_indexes, row);
+        size_t const A_end = *(size_t *)list_atc(&A->row_indexes, row+1);
+
+        for (size_t col = 0; col < col_count; col++) {
+            size_t const B_start = *(size_t *)list_atc(&B->row_indexes, col);
+            size_t const B_end = *(size_t *)list_atc(&B->row_indexes, col+1);
+
+            MATRIX_CSR_SCALAR_T value = MATRIX_CSR_SCALAR_ZERO;
+            size_t A_curr = A_start;
+            size_t B_curr = B_start;
+
+            while (A_curr < A_end && B_curr < B_end) {
+                Entry const *A_entry = list_atc(&A->entries, A_curr);
+                Entry const *B_entry = list_atc(&B->entries, B_curr);
+
+                if (A_entry->col_index < B_entry->col_index) {
+                    A_curr++;
+                } else if (B_entry->col_index < A_entry->col_index) {
+                    B_curr++;
+                } else {
+                    value = MATRIX_CSR_SCALAR_SUM(
+                        value,
+                        MATRIX_CSR_SCALAR_PROD(A_entry->value, B_entry->value)
+                    );
+                }
+            }
+
+            if (MATRIX_CSR_SCALAR_IS_ZERO(value)) {
+                continue;
+            }
+
+            Entry entry = {.value=value, .col_index=col, .row_index=row};
+            err = matrix_entry_insert_at(C, list_get_count(&C->entries), entry);
+            if (err != CSR_ERR__OK) {
+                return err;
+            }
+        }
+    }
+    return CSR_ERR__OK;
+}
 
 
 inline CSRErr matrix_value_insert(

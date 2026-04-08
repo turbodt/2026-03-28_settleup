@@ -423,9 +423,9 @@ void entry_sort_by_row(List *entries, size_t start, size_t end) {
     entry_sort_by_row(entries, middle, end);
 
     while (middle < end) {
-        for (size_t i = middle -1; i > 0; i--) {
-            Entry * a = list_at(entries, i);
-            Entry * b = list_at(entries, i+1);
+        for (size_t i = middle; i > 0; i--) {
+            Entry * a = list_at(entries, i-1);
+            Entry * b = list_at(entries, i);
             if (a->row_index > b->row_index) {
                 entry_swap(a,b);
             } else {

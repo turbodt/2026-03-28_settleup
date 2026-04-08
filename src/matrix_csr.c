@@ -195,20 +195,26 @@ MatrixCSR * matrix_csr_prod(MatrixCSR const *A, MatrixCSR const *B) {
 
     if (__MATRIX_CSR_IS_TRANSPOSED(A)) {
         if (__MATRIX_CSR_IS_TRANSPOSED(B)) {
-            // TODO
+            matrix_transpose_values(C);
+            err = matrix_prod_nn(B, A, C);
         } else {
             // TODO
+            matrix_csr_destroy(C);
+            return NULL;
         }
+    } else if (__MATRIX_CSR_IS_TRANSPOSED(B)) {
+        err = matrix_prod_nt(A, B, C);
     } else {
-        if (__MATRIX_CSR_IS_TRANSPOSED(B)) {
-            err = matrix_prod_nt(A, B, C);
-        } else {
-            err = matrix_prod_nn(A, B, C);
-        }
+        err = matrix_prod_nn(A, B, C);
     }
 
     if (err) {
         goto MatrixProdEntryAllocErr;
+    }
+
+
+    if (__MATRIX_CSR_IS_TRANSPOSED(A) && __MATRIX_CSR_IS_TRANSPOSED(B)) {
+        matrix_transpose_values(C);
     }
 
     return C;

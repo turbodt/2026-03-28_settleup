@@ -514,13 +514,6 @@ int test_matrix_010(void) {
 
     MatrixCSR *C = matrix_csr_prod(A, B);
     ASSERT_NOT_NULL(C);
-    printf("\n");
-    printf("A = \n");
-    matrix_csr_print(A);
-    printf("B = \n");
-    matrix_csr_print(B);
-    printf("C = \n");
-    matrix_csr_print(C);
     ASSERT_EQ(3, matrix_csr_get_row_count(C));
     ASSERT_EQ(4, matrix_csr_get_col_count(C));
 

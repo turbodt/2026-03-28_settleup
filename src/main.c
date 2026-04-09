@@ -36,6 +36,7 @@ static int test_matrix_007(void);
 static int test_matrix_008(void);
 static int test_matrix_009(void);
 static int test_matrix_010(void);
+static int test_matrix_011(void);
 
 
 int main(void) {
@@ -52,6 +53,7 @@ int main(void) {
         {"Matrix 008", test_matrix_008},
         {"Matrix 009", test_matrix_009},
         {"Matrix 010", test_matrix_010},
+        {"Matrix 011", test_matrix_011},
         {.call=NULL},
     };
 
@@ -535,6 +537,55 @@ int test_matrix_010(void) {
                 ASSERT_EQ(4.0, matrix_csr_get(C, row, col));
             } else if (row == 2 && col == 3) {
                 ASSERT_EQ(12.0, matrix_csr_get(C, row, col));
+            } else {
+                ASSERT_EQ(0.0, matrix_csr_get(C, row, col));
+            }
+        }
+    }
+
+    matrix_csr_destroy(C);
+    matrix_csr_destroy(B);
+    matrix_csr_destroy(A);
+    return 0;
+}
+
+int test_matrix_011(void) {
+    // A_orig = [1.0, 2.0]
+    //          [0.0, 3.0]
+    //          [4.0, 0.0]
+    MatrixCSR *A = matrix_csr_make(3, 2);
+    ASSERT_NOT_NULL(A);
+    ASSERT_NOT(matrix_csr_set(A, 0, 0, 1.0));
+    ASSERT_NOT(matrix_csr_set(A, 0, 1, 2.0));
+    ASSERT_NOT(matrix_csr_set(A, 1, 1, 3.0));
+    ASSERT_NOT(matrix_csr_set(A, 2, 0, 4.0));
+    matrix_csr_transpose(A); // Ara A és lògicament 2x3
+
+    // B_orig = [1.0, 0.0]
+    //          [2.0, 1.0]
+    //          [0.0, 3.0]
+    MatrixCSR *B = matrix_csr_make(3, 2);
+    ASSERT_NOT_NULL(B);
+    ASSERT_NOT(matrix_csr_set(B, 0, 0, 1.0));
+    ASSERT_NOT(matrix_csr_set(B, 1, 0, 2.0));
+    ASSERT_NOT(matrix_csr_set(B, 1, 1, 1.0));
+    ASSERT_NOT(matrix_csr_set(B, 2, 1, 3.0));
+
+    MatrixCSR *C = matrix_csr_prod(A, B);
+    ASSERT_NOT_NULL(C);
+    ASSERT_EQ(2, matrix_csr_get_row_count(C));
+    ASSERT_EQ(2, matrix_csr_get_col_count(C));
+
+    for (size_t row = 0; row < 2; row++) {
+        for (size_t col = 0; col < 2; col++) {
+            if (row == 0 && col == 0) {
+                ASSERT_EQ(1.0, matrix_csr_get(C, row, col));
+            } else if (row == 0 && col == 1) {
+                ASSERT_EQ(12.0, matrix_csr_get(C, row, col));
+            } else if (row == 1 && col == 0) {
+                ASSERT_EQ(8.0, matrix_csr_get(C, row, col));
+            } else if (row == 1 && col == 1) {
+                ASSERT_EQ(3.0, matrix_csr_get(C, row, col));
             } else {
                 ASSERT_EQ(0.0, matrix_csr_get(C, row, col));
             }

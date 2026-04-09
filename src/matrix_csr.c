@@ -36,6 +36,7 @@ struct MatrixCSR {
 };
 
 
+static CSRErr matrix_prod_tn(MatrixCSR const *, MatrixCSR const *, MatrixCSR *);
 static CSRErr matrix_prod_nn(MatrixCSR const *, MatrixCSR const *, MatrixCSR *);
 static CSRErr matrix_prod_nt(MatrixCSR const *, MatrixCSR const *, MatrixCSR *);
 static CSRErr matrix_value_remove(MatrixCSR *, size_t row, size_t col);
@@ -239,9 +240,7 @@ MatrixCSR * matrix_csr_prod(MatrixCSR const *A, MatrixCSR const *B) {
             matrix_transpose_values(C);
             err = matrix_prod_nn(B, A, C);
         } else {
-            // TODO
-            matrix_csr_destroy(C);
-            return NULL;
+            err = matrix_prod_tn(A, B, C);
         }
     } else if (__MATRIX_CSR_IS_TRANSPOSED(B)) {
         err = matrix_prod_nt(A, B, C);
@@ -266,6 +265,26 @@ MatrixProdAllocErr:
 MatrixProdDimErr:
     return NULL;
 };
+
+
+CSRErr matrix_prod_tn(
+    MatrixCSR const *A,
+    MatrixCSR const *B,
+    MatrixCSR *C
+) {
+    MatrixCSR *At = matrix_csr_clone(A);
+    if (!At) {
+        return CSR_ERR__ALLOC;
+    }
+
+    matrix_transpose_values(At);
+    matrix_toggle_transpose_bool(At);
+
+    CSRErr err = matrix_prod_nn(At, B, C);
+
+    matrix_csr_destroy(At);
+    return err;
+}
 
 
 CSRErr matrix_prod_nn(

@@ -2,6 +2,7 @@
 #include "./list.h"
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 
 #ifndef MAX
@@ -42,6 +43,7 @@ static CSRErr matrix_value_insert(MatrixCSR *, size_t row, size_t col, MATRIX_CS
 static CSRErr matrix_entry_insert_at(MatrixCSR *, size_t entry_index, Entry);
 static void matrix_toggle_transpose_bool(MatrixCSR *);
 static void matrix_transpose_values(MatrixCSR *);
+static void matrix_rebuild_col_indexes(MatrixCSR *);
 static CSRErr entry_insert(List *, size_t entry_index, Entry);
 static void entry_remove(List *, size_t entry_index);
 static void entry_sort_by_row(List *, size_t start, size_t end);
@@ -399,8 +401,60 @@ void matrix_transpose_values(MatrixCSR *m) {
         Entry *entry = list_at(&m->entries, i);
         size_swap(&entry->row_index, &entry->col_index);
     }
-    entry_sort_by_row(&m->entries, 0, entry_count);
-};
+
+    if (entry_count == 0) {
+        return;
+    }
+
+    Entry *entries = (Entry *)m->entries.items;
+    size_t *new_row_starts = (size_t *)m->row_indexes.items;
+    size_t *write_pointers = (size_t *)m->col_indexes.items;
+    for (size_t i = 0; i < m->row_count; i++) {
+        write_pointers[i] = new_row_starts[i];
+    }
+
+    for (size_t orig_index = 0; orig_index < m->row_count; orig_index++) {
+        while (write_pointers[orig_index] < new_row_starts[orig_index + 1]) {
+            size_t curr_idx = write_pointers[orig_index];
+            Entry *e = &entries[curr_idx];
+
+            size_t target_row = e->row_index;
+            size_t dest_idx = write_pointers[target_row];
+
+            if (curr_idx == dest_idx) {
+                write_pointers[orig_index]++;
+            } else {
+                entry_swap(e, &entries[dest_idx]);
+                write_pointers[target_row]++;
+            }
+        }
+    }
+
+    matrix_rebuild_col_indexes(m);
+}
+
+
+void matrix_rebuild_col_indexes(MatrixCSR *m) {
+    size_t entry_count = m->entries.count;
+    if (entry_count == 0) return;
+
+    Entry *entries = (Entry *)m->entries.items;
+    size_t *col_indexes = (size_t *)m->col_indexes.items;
+    size_t col_count = m->col_count;
+
+    memset(col_indexes, 0, (col_count + 1) * sizeof(size_t));
+
+    for (size_t i = 0; i < entry_count; i++) {
+        size_t col = entries[i].col_index;
+        col_indexes[col + 1]++;
+    }
+
+    for (size_t i = 0; i < col_count; i++) {
+        col_indexes[i + 1] += col_indexes[i];
+    }
+
+    m->col_indexes.count = col_count + 1;
+}
 
 
 CSRErr entry_insert(List *entries, size_t entry_index, Entry entry) {

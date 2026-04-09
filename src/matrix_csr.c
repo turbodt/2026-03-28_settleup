@@ -126,9 +126,9 @@ MatrixCSR * matrix_csr_clone(MatrixCSR const *src) {
     dst->row_count = src->row_count;
     dst->bools = src->bools;
 
-    dst->entries.items = NULL;
-    dst->row_indexes.items = NULL;
-    dst->col_indexes.items = NULL;
+    list_init(&dst->entries, sizeof(Entry), 0);
+    list_init(&dst->row_indexes, sizeof(size_t), 0);
+    list_init(&dst->col_indexes, sizeof(size_t), 0);
 
     err = list_cpy(&dst->entries, &src->entries);
     if (err != LIST_ERR__OK) {

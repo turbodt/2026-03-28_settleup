@@ -11,6 +11,12 @@ ListErr list_init(List *list, size_t item_size, size_t initial_capacity) {
     list->item_size = item_size;
     list->count = 0;
     list->capacity = initial_capacity;
+    list->items = NULL;
+
+    if (!initial_capacity) {
+        return LIST_ERR__OK;
+    }
+
     list->items = malloc(list->item_size * list->capacity);
 
     if (!list->items) {

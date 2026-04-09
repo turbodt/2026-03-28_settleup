@@ -45,6 +45,7 @@ enum {
 };
 
 MatrixCSR * matrix_csr_make(size_t, size_t);
+MatrixCSR * matrix_csr_clone(MatrixCSR const *);
 void matrix_csr_destroy(MatrixCSR *);
 
 

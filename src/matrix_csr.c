@@ -113,6 +113,44 @@ MatrixMakeAllocFailed:
 };
 
 
+
+MatrixCSR * matrix_csr_clone(MatrixCSR const *src) {
+    ListErr err;
+    MatrixCSR *dst = malloc(sizeof(MatrixCSR));
+    if (!dst) {
+        return NULL;
+    }
+
+    dst->col_count = src->col_count;
+    dst->row_count = src->row_count;
+    dst->bools = src->bools;
+
+    dst->entries.items = NULL;
+    dst->row_indexes.items = NULL;
+    dst->col_indexes.items = NULL;
+
+    err = list_cpy(&dst->entries, &src->entries);
+    if (err != LIST_ERR__OK) {
+        goto MatrixCloneListCopyFailed;
+    }
+
+    err = list_cpy(&dst->row_indexes, &src->row_indexes);
+    if (err != LIST_ERR__OK) {
+        goto MatrixCloneListCopyFailed;
+    }
+
+    err = list_cpy(&dst->col_indexes, &src->col_indexes);
+    if (err != LIST_ERR__OK) {
+        goto MatrixCloneListCopyFailed;
+    }
+
+    return dst;
+MatrixCloneListCopyFailed:
+    matrix_csr_destroy(dst);
+    return NULL;
+};
+
+
 void matrix_csr_destroy(MatrixCSR *m) {
     list_clear(&m->col_indexes);
     list_clear(&m->row_indexes);

@@ -21,6 +21,7 @@ enum {
 typedef int ListErr;
 
 ListErr list_init(List *, size_t item_size, size_t initial_capacity);
+ListErr list_cpy(List *, List const *);
 void list_clear(List *);
 
 size_t list_get_count(List const *);

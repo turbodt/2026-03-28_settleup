@@ -23,9 +23,38 @@ ListErr list_init(List *list, size_t item_size, size_t initial_capacity) {
 };
 
 
+ListErr list_cpy(List *dst, List const *src) {
+
+    if (!src->items || !src->capacity) {
+        list_clear(dst);
+        return LIST_ERR__OK;
+    }
+
+    void *new_items;
+    if (dst->items) {
+        new_items = realloc(dst->items, src->item_size*src->capacity);
+    } else {
+        new_items = malloc(src->item_size*src->capacity);
+    }
+
+    if (!new_items) {
+        return LIST_ERR__ALLOC;
+    }
+    dst->items = new_items;
+    dst->count = src->count;
+    dst->capacity = src->capacity;
+    dst->item_size = src->item_size;
+
+    memcpy(dst->items, src->items, src->item_size*src->capacity);
+
+    return LIST_ERR__OK;
+};
+
+
 void list_clear(List *list) {
     if (list->items) {
         free(list->items);
+        list->items = NULL;
     }
     list->capacity = 0;
     list->count = 0;

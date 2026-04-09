@@ -65,17 +65,18 @@ MatrixCSR * matrix_csr_make(size_t row_count, size_t col_count) {
 
     m->col_count = col_count;
     m->row_count = row_count;
+    size_t const max_dim_count = MAX(col_count, row_count);
     m->bools = 0;
-    err = list_init(&m->entries, sizeof(Entry), MAX(row_count, col_count));
+    err = list_init(&m->entries, sizeof(Entry), max_dim_count);
     if (err) {
         goto MatrixMakeEntriesAllocFailed;
     }
 
-    err = list_init(&m->row_indexes, sizeof(size_t), row_count + 1);
+    err = list_init(&m->row_indexes, sizeof(size_t), max_dim_count + 1);
     if (err) {
         goto MatrixMakeRowIndexesAllocFailed;
     }
-    err = list_insert_at(&m->row_indexes, 0, row_count + 1);
+    err = list_insert_at(&m->row_indexes, 0, max_dim_count + 1);
     if (err) {
         goto MatrixMakeRowIndexesInsertFailed;
     }
@@ -83,11 +84,11 @@ MatrixCSR * matrix_csr_make(size_t row_count, size_t col_count) {
         *(size_t *) list_at(&m->row_indexes, i) = 0;
     }
 
-    err = list_init(&m->col_indexes, sizeof(size_t), col_count + 1);
+    err = list_init(&m->col_indexes, sizeof(size_t), max_dim_count + 1);
     if (err) {
         goto MatrixMakeColIndexesAllocFailed;
     }
-    err = list_insert_at(&m->col_indexes, 0, col_count + 1);
+    err = list_insert_at(&m->col_indexes, 0, max_dim_count + 1);
     if (err) {
         goto MatrixMakeColIndexesInsertFailed;
     }

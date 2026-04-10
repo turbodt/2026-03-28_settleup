@@ -8,6 +8,11 @@
 #include "./error.h"
 
 
+#ifndef SPM_LIST__MIN_CAPACITY
+#define SPM_LIST__MIN_CAPACITY 8
+#endif
+
+
 #define SPM_LIST_HEADER(S_T, T_SFX, F_SFX) \
 \
 typedef struct { \
@@ -33,7 +38,6 @@ SpmErr spm_list_##F_SFX##_append(SpmList##T_SFX *l, size_t insert_count); \
 
 
 
-#define SPM_LIST__MIN_CAPACITY 8
 #define SPM_LIST_IMPLEMENTATION(S_T, T_SFX, F_SFX) \
 \
 \

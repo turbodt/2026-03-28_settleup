@@ -1,4 +1,4 @@
-#include "./matrix_csr.h"
+#include "./matrix.h"
 #include "./list.h"
 #include <stdlib.h>
 #include <stdint.h>

@@ -3,7 +3,7 @@
 
 
 #include "./list.h"
-#include "./matrix_csr.h"
+#include "./matrix.h"
 
 
 #define RED(s) "\x1b[31m" s "\x1b[0m"

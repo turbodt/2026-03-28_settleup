@@ -13,12 +13,13 @@ struct List {
     size_t item_size;
 };
 
-enum {
+
+typedef enum {
     LIST_ERR__OK = 0,
     LIST_ERR__ALLOC = 1,
     LIST_ERR__OUT_INDEX = 2,
-};
-typedef int ListErr;
+} ListErr;
+
 
 ListErr list_init(List *l, size_t item_size, size_t initial_capacity);
 ListErr list_cpy(List *dst, List const *src);

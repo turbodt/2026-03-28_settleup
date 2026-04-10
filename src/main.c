@@ -6,6 +6,7 @@
 #include "./matrix.h"
 
 
+
 #define RED(s) "\x1b[31m" s "\x1b[0m"
 #define GREEN(s) "\x1b[32m" s "\x1b[0m"
 #define DEBUG(s) fprintf(stderr, "[%s:%d]: %s", __FILE__, __LINE__, ""#s)
@@ -16,13 +17,14 @@
 #define ASSERT_NULL(b) ASSERT_NOT(b)
 #define ASSERT_NOT_NULL(b) ASSERT(b)
 
+SPM_LIST_HEADER(size_t, Size, size);
 
 typedef struct {
     char name[32];
     int (* const call)(void);
 } Test;
 
-static void spm_list_int_print(SpmList const *);
+static void spm_list_int_print(SpmListSize const *);
 static void spm_matrix_print(SpmMatrix const *);
 static int test_list_001(void);
 static int test_list_002(void);
@@ -76,68 +78,68 @@ int main(void) {
 
 int test_list_001(void) {
     int err;
-    SpmList numbers = {0};
-    spm_list_init(&numbers, sizeof(int), 10);
-    ASSERT_EQ(0, spm_list_get_count(&numbers));
+    SpmListSize numbers = {0};
+    spm_list_size_init(&numbers, 10);
+    ASSERT_EQ(0, spm_list_size_get_count(&numbers));
 
-    err = spm_list_insert_at(&numbers, 0, 10);
+    err = spm_list_size_insert_at(&numbers, 0, 10);
     ASSERT_NOT(err);
-    ASSERT_EQ(10, spm_list_get_count(&numbers));
+    ASSERT_EQ(10, spm_list_size_get_count(&numbers));
 
-    for (size_t i = 0; i < spm_list_get_count(&numbers); i++) {
-        *(int*)spm_list_at(&numbers, i) = (int) i;
+    for (size_t i = 0; i < spm_list_size_get_count(&numbers); i++) {
+        spm_list_size_set(&numbers, i, i);
     }
 
-    for (size_t i = 0; i < spm_list_get_count(&numbers); i++) {
-        ASSERT_EQ(*(int*)spm_list_at(&numbers, i), (double) i);
+    for (size_t i = 0; i < spm_list_size_get_count(&numbers); i++) {
+        ASSERT_EQ(spm_list_size_get(&numbers, i), (size_t) i);
     }
 
-    err = spm_list_insert_at(&numbers, 3, 18);
+    err = spm_list_size_insert_at(&numbers, 3, 18);
     ASSERT_NOT(err);
-    ASSERT_EQ(28, spm_list_get_count(&numbers));
+    ASSERT_EQ(28, spm_list_size_get_count(&numbers));
     for (size_t i = 0; i < 3; i++) {
-        ASSERT_EQ(*(int*)spm_list_at(&numbers, i), (double) i);
+        ASSERT_EQ(spm_list_size_get(&numbers, i), (size_t) i);
     }
     for (size_t i = 21; i < 28; i++) {
-        ASSERT_EQ(*(int*)spm_list_at(&numbers, i), (double) i-18);
+        ASSERT_EQ(spm_list_size_get(&numbers, i), (size_t) i-18);
     }
 
 
-    err = spm_list_remove_at(&numbers, 5, 7);
+    err = spm_list_size_remove_at(&numbers, 5, 7);
     ASSERT_NOT(err);
-    ASSERT_EQ(21, spm_list_get_count(&numbers));
+    ASSERT_EQ(21, spm_list_size_get_count(&numbers));
     for (size_t i = 0; i < 3; i++) {
-        ASSERT_EQ(*(int*)spm_list_at(&numbers, i), (double) i);
+        ASSERT_EQ(spm_list_size_get(&numbers, i), (size_t) i);
     }
     for (size_t i = 14; i < 21; i++) {
-        ASSERT_EQ(*(int*)spm_list_at(&numbers, i), (double) i-11);
+        ASSERT_EQ(spm_list_size_get(&numbers, i), (size_t) i-11);
     }
 
-    spm_list_clear(&numbers);
+    spm_list_size_clear(&numbers);
     return 0;
 }
 
 
 int test_list_002(void) {
     int err;
-    SpmList numbers = {0};
-    spm_list_init(&numbers, sizeof(int), 2);
+    SpmListSize numbers = {0};
+    spm_list_size_init(&numbers, 2);
 
     for (int i = 0; i < 100; i++) {
-        err = spm_list_insert_at(&numbers, spm_list_get_count(&numbers), 1);
+        err = spm_list_size_insert_at(&numbers, spm_list_size_get_count(&numbers), 1);
         ASSERT_NOT(err);
-        *(int*)spm_list_at(&numbers, i) = i;
+        spm_list_size_set(&numbers, i, i);
     }
-    ASSERT_EQ(100, spm_list_get_count(&numbers));
+    ASSERT_EQ(100, spm_list_size_get_count(&numbers));
 
-    spm_list_remove_at(&numbers, 0, 10);
-    ASSERT_EQ(90, spm_list_get_count(&numbers));
-    ASSERT_EQ(10, *(int*)spm_list_at(&numbers, 0));
+    spm_list_size_remove_at(&numbers, 0, 10);
+    ASSERT_EQ(90, spm_list_size_get_count(&numbers));
+    ASSERT_EQ(10, spm_list_size_get(&numbers, 0));
 
-    spm_list_remove_at(&numbers, spm_list_get_count(&numbers) - 10, 10);
-    ASSERT_EQ(80, spm_list_get_count(&numbers));
+    spm_list_size_remove_at(&numbers, spm_list_size_get_count(&numbers) - 10, 10);
+    ASSERT_EQ(80, spm_list_size_get_count(&numbers));
 
-    spm_list_clear(&numbers);
+    spm_list_size_clear(&numbers);
     return 0;
 }
 
@@ -599,13 +601,13 @@ int test_matrix_011(void) {
 }
 
 
-void spm_list_int_print(SpmList const *list) {
-    printf("%zu: [", spm_list_get_count(list));
-    for (size_t i = 0; i< spm_list_get_count(list); i++) {
+void spm_list_size_print(SpmListSize const *list) {
+    printf("%zu: [", spm_list_size_get_count(list));
+    for (size_t i = 0; i< spm_list_size_get_count(list); i++) {
         if (i > 0) {
             printf(", ");
         }
-        printf("%d", *(int *)spm_list_atc(list, i));
+        printf("%zu", spm_list_size_get(list, i));
     }
     printf("]\n");
 };

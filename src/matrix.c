@@ -17,20 +17,25 @@
     ((1 << __SPM_BOOL__TRANSPOSED_OFFSET) & (m)->bools)
 
 
+SPM_LIST_HEADER(size_t, Size, size);
+
 typedef struct {
     SPM_SCALAR_T value;
     size_t col_index;
     size_t row_index;
 } Entry;
 
+SPM_LIST_HEADER(Entry, Entry, entry);
+SPM_LIST_IMPLEMENTATION(Entry, Entry, entry);
+
 
 struct SpmMatrix {
     size_t col_count;
     size_t row_count;
 
-    SpmList entries;
-    SpmList row_indexes;
-    SpmList col_indexes;
+    SpmListEntry entries;
+    SpmListSize row_indexes;
+    SpmListSize col_indexes;
 
     uint32_t bools;
 };
@@ -45,15 +50,16 @@ static SpmErr matrix_entry_insert_at(SpmMatrix *, size_t entry_index, Entry);
 static void matrix_toggle_transpose_bool(SpmMatrix *);
 static void matrix_transpose_values(SpmMatrix *);
 static void matrix_rebuild_col_indexes(SpmMatrix *);
-static SpmErr entry_insert(SpmList *, size_t entry_index, Entry);
-static void entry_remove(SpmList *, size_t entry_index);
-static void entry_sort_by_row(SpmList *, size_t start, size_t end);
+static SpmErr entry_insert(SpmListEntry *, size_t entry_index, Entry);
+static void entry_remove(SpmListEntry *, size_t entry_index);
+static void entry_sort_by_row(SpmListEntry *, size_t start, size_t end);
 static Entry * entry_get_at(SpmMatrix *, size_t row, size_t col);
 static Entry const * entry_getc_at(SpmMatrix const *, size_t row, size_t col);
 static size_t entry_index_get_at(SpmMatrix const *, size_t row, size_t col);
 static size_t entry_index_get_with_col(Entry *,size_t col, size_t start, size_t end);
 static void entry_swap(Entry *, Entry *);
-static void list_swap(SpmList *, SpmList *);
+static void list_size_swap(SpmListSize *, SpmListSize *);
+static void list_entry_swap(SpmListEntry *, SpmListEntry *);
 static void size_swap(size_t *, size_t *);
 static void ptr_swap(void **, void **);
 
@@ -70,43 +76,43 @@ SpmMatrix * spm_matrix_make(size_t row_count, size_t col_count) {
     m->row_count = row_count;
     size_t const max_dim_count = MAX(col_count, row_count);
     m->bools = 0;
-    err = spm_list_init(&m->entries, sizeof(Entry), max_dim_count);
+    err = spm_list_entry_init(&m->entries, max_dim_count);
     if (err) {
         goto MatrixMakeEntriesAllocFailed;
     }
 
-    err = spm_list_init(&m->row_indexes, sizeof(size_t), max_dim_count + 1);
+    err = spm_list_size_init(&m->row_indexes, max_dim_count + 1);
     if (err) {
         goto MatrixMakeRowIndexesAllocFailed;
     }
-    err = spm_list_insert_at(&m->row_indexes, 0, max_dim_count + 1);
+    err = spm_list_size_insert_at(&m->row_indexes, 0, max_dim_count + 1);
     if (err) {
         goto MatrixMakeRowIndexesInsertFailed;
     }
     for (size_t i = 0; i < row_count + 1; i++) {
-        *(size_t *) spm_list_at(&m->row_indexes, i) = 0;
+        spm_list_size_set(&m->row_indexes, i, 0);
     }
 
-    err = spm_list_init(&m->col_indexes, sizeof(size_t), max_dim_count + 1);
+    err = spm_list_size_init(&m->col_indexes, max_dim_count + 1);
     if (err) {
         goto MatrixMakeColIndexesAllocFailed;
     }
-    err = spm_list_insert_at(&m->col_indexes, 0, max_dim_count + 1);
+    err = spm_list_size_insert_at(&m->col_indexes, 0, max_dim_count + 1);
     if (err) {
         goto MatrixMakeColIndexesInsertFailed;
     }
     for (size_t j = 0; j < col_count + 1; j++) {
-        *(size_t *) spm_list_at(&m->col_indexes, j) = 0;
+        spm_list_size_set(&m->col_indexes, j, 0);
     }
 
     return m;
 MatrixMakeColIndexesInsertFailed:
-    spm_list_clear(&m->row_indexes);
+    spm_list_size_clear(&m->row_indexes);
 MatrixMakeColIndexesAllocFailed:
 MatrixMakeRowIndexesInsertFailed:
-    spm_list_clear(&m->row_indexes);
+    spm_list_size_clear(&m->row_indexes);
 MatrixMakeRowIndexesAllocFailed:
-    spm_list_clear(&m->entries);
+    spm_list_entry_clear(&m->entries);
 MatrixMakeEntriesAllocFailed:
     free(m);
 MatrixMakeAllocFailed:
@@ -126,21 +132,21 @@ SpmMatrix * spm_matrix_clone(SpmMatrix const *src) {
     dst->row_count = src->row_count;
     dst->bools = src->bools;
 
-    spm_list_init(&dst->entries, sizeof(Entry), 0);
-    spm_list_init(&dst->row_indexes, sizeof(size_t), 0);
-    spm_list_init(&dst->col_indexes, sizeof(size_t), 0);
+    spm_list_entry_init(&dst->entries, 0);
+    spm_list_size_init(&dst->row_indexes, 0);
+    spm_list_size_init(&dst->col_indexes, 0);
 
-    err = spm_list_cpy(&dst->entries, &src->entries);
+    err = spm_list_entry_cpy(&dst->entries, &src->entries);
     if (err != SPM_ERR__OK) {
         goto MatrixCloneListCopyFailed;
     }
 
-    err = spm_list_cpy(&dst->row_indexes, &src->row_indexes);
+    err = spm_list_size_cpy(&dst->row_indexes, &src->row_indexes);
     if (err != SPM_ERR__OK) {
         goto MatrixCloneListCopyFailed;
     }
 
-    err = spm_list_cpy(&dst->col_indexes, &src->col_indexes);
+    err = spm_list_size_cpy(&dst->col_indexes, &src->col_indexes);
     if (err != SPM_ERR__OK) {
         goto MatrixCloneListCopyFailed;
     }
@@ -153,9 +159,9 @@ MatrixCloneListCopyFailed:
 
 
 void spm_matrix_destroy(SpmMatrix *m) {
-    spm_list_clear(&m->col_indexes);
-    spm_list_clear(&m->row_indexes);
-    spm_list_clear(&m->entries);
+    spm_list_size_clear(&m->col_indexes);
+    spm_list_size_clear(&m->row_indexes);
+    spm_list_entry_clear(&m->entries);
     free(m);
 };
 
@@ -297,14 +303,14 @@ SpmErr matrix_prod_nn(
     size_t const col_count = spm_matrix_get_col_count(C);
 
     for (size_t row = 0; row < row_count; row++) {
-        size_t const A_start = *(size_t *)spm_list_atc(&A->row_indexes, row);
-        size_t const A_end = *(size_t *)spm_list_atc(&A->row_indexes, row+1);
+        size_t const A_start = spm_list_size_get(&A->row_indexes, row);
+        size_t const A_end = spm_list_size_get(&A->row_indexes, row+1);
 
         for (size_t col = 0; col < col_count; col++) {
             SPM_SCALAR_T value = SPM_SCALAR_ZERO;
 
             for (size_t A_curr = A_start; A_curr < A_end; A_curr++) {
-                Entry const *A_entry = spm_list_atc(&A->entries, A_curr);
+                Entry const *A_entry = spm_list_entry_atc(&A->entries, A_curr);
                 Entry const *B_entry = entry_getc_at(B, A_entry->col_index,col);
                 if (!B_entry) {
                     continue;
@@ -320,7 +326,7 @@ SpmErr matrix_prod_nn(
             }
 
             Entry entry = {.value=value, .col_index=col, .row_index=row};
-            err = matrix_entry_insert_at(C, spm_list_get_count(&C->entries), entry);
+            err = matrix_entry_insert_at(C, spm_list_entry_get_count(&C->entries), entry);
             if (err != SPM_ERR__OK) {
                 return err;
             }
@@ -340,20 +346,20 @@ SpmErr matrix_prod_nt(
     size_t const col_count = spm_matrix_get_col_count(C);
 
     for (size_t row = 0; row < row_count; row++) {
-        size_t const A_start = *(size_t *)spm_list_atc(&A->row_indexes, row);
-        size_t const A_end = *(size_t *)spm_list_atc(&A->row_indexes, row+1);
+        size_t const A_start = spm_list_size_get(&A->row_indexes, row);
+        size_t const A_end = spm_list_size_get(&A->row_indexes, row+1);
 
         for (size_t col = 0; col < col_count; col++) {
-            size_t const B_start = *(size_t *)spm_list_atc(&B->row_indexes, col);
-            size_t const B_end = *(size_t *)spm_list_atc(&B->row_indexes, col+1);
+            size_t const B_start = spm_list_size_get(&B->row_indexes, col);
+            size_t const B_end = spm_list_size_get(&B->row_indexes, col+1);
 
             SPM_SCALAR_T value = SPM_SCALAR_ZERO;
             size_t A_curr = A_start;
             size_t B_curr = B_start;
 
             while (A_curr < A_end && B_curr < B_end) {
-                Entry const *A_entry = spm_list_atc(&A->entries, A_curr);
-                Entry const *B_entry = spm_list_atc(&B->entries, B_curr);
+                Entry const *A_entry = spm_list_entry_atc(&A->entries, A_curr);
+                Entry const *B_entry = spm_list_entry_atc(&B->entries, B_curr);
 
                 if (A_entry->col_index < B_entry->col_index) {
                     A_curr++;
@@ -374,7 +380,7 @@ SpmErr matrix_prod_nt(
             }
 
             Entry entry = {.value=value, .col_index=col, .row_index=row};
-            err = matrix_entry_insert_at(C, spm_list_get_count(&C->entries), entry);
+            err = matrix_entry_insert_at(C, spm_list_entry_get_count(&C->entries), entry);
             if (err != SPM_ERR__OK) {
                 return err;
             }
@@ -407,12 +413,12 @@ SpmErr matrix_entry_insert_at(SpmMatrix *m, size_t index, Entry entry) {
 
     size_t row_count = m->row_count;
     for (size_t i = entry.row_index; i < row_count; i++) {
-        *(size_t*)spm_list_at(&m->row_indexes, i + 1) += 1;
+        *spm_list_size_at(&m->row_indexes, i + 1) += 1;
     }
 
     size_t col_count = m->col_count;
     for (size_t j = entry.col_index; j < col_count; j++) {
-        *(size_t*)spm_list_at(&m->col_indexes, j + 1) += 1;
+        *spm_list_size_at(&m->col_indexes, j + 1) += 1;
     }
 
     return SPM_ERR__OK;
@@ -429,12 +435,12 @@ SpmErr matrix_value_remove(
 
     size_t row_count = m->row_count;
     for (size_t i = row; i < row_count; i++) {
-        *(size_t*)spm_list_at(&m->row_indexes, i + 1) -= 1;
+        *spm_list_size_at(&m->row_indexes, i + 1) -= 1;
     }
 
     size_t col_count = m->col_count;
     for (size_t j = col; j < col_count; j++) {
-        *(size_t*)spm_list_at(&m->col_indexes, j + 1) -= 1;
+        *spm_list_size_at(&m->col_indexes, j + 1) -= 1;
     }
 
     return SPM_ERR__OK;
@@ -452,10 +458,10 @@ void matrix_toggle_transpose_bool(SpmMatrix *m) {
 
 void matrix_transpose_values(SpmMatrix *m) {
     size_swap(&m->row_count, &m->col_count);
-    list_swap(&m->row_indexes, &m->col_indexes);
-    size_t const entry_count = spm_list_get_count(&m->entries);
+    list_size_swap(&m->row_indexes, &m->col_indexes);
+    size_t const entry_count = spm_list_entry_get_count(&m->entries);
     for (size_t i = 0; i < entry_count; i++) {
-        Entry *entry = spm_list_at(&m->entries, i);
+        Entry *entry = spm_list_entry_at(&m->entries, i);
         size_swap(&entry->row_index, &entry->col_index);
     }
 
@@ -514,26 +520,26 @@ void matrix_rebuild_col_indexes(SpmMatrix *m) {
 }
 
 
-SpmErr entry_insert(SpmList *entries, size_t entry_index, Entry entry) {
-    SpmErr err = spm_list_insert_at(entries, entry_index, 1);
+SpmErr entry_insert(SpmListEntry *entries, size_t entry_index, Entry entry) {
+    SpmErr err = spm_list_entry_insert_at(entries, entry_index, 1);
     switch (err) {
         case SPM_ERR__OK: break;
         case SPM_ERR__ALLOC: return SPM_ERR__ALLOC;
         default: return SPM_ERR__UNKNOWN;
     }
 
-    *(Entry *)spm_list_at(entries, entry_index) = entry;
+    spm_list_entry_set(entries, entry_index, entry);
 
     return SPM_ERR__OK;
 };
 
 
-void entry_remove(SpmList *entries, size_t entry_index) {
-    spm_list_remove_at(entries, entry_index, 1);
+inline void entry_remove(SpmListEntry *entries, size_t entry_index) {
+    spm_list_entry_remove_at(entries, entry_index, 1);
 };
 
 
-void entry_sort_by_row(SpmList *entries, size_t start, size_t end) {
+void entry_sort_by_row(SpmListEntry *entries, size_t start, size_t end) {
     if (end <= start + 1) {
         return;
     }
@@ -544,8 +550,8 @@ void entry_sort_by_row(SpmList *entries, size_t start, size_t end) {
 
     while (middle < end) {
         for (size_t i = middle; i > 0; i--) {
-            Entry * a = spm_list_at(entries, i-1);
-            Entry * b = spm_list_at(entries, i);
+            Entry * a = spm_list_entry_at(entries, i-1);
+            Entry * b = spm_list_entry_at(entries, i);
             if (a->row_index > b->row_index) {
                 entry_swap(a,b);
             } else {
@@ -559,13 +565,13 @@ void entry_sort_by_row(SpmList *entries, size_t start, size_t end) {
 
 Entry * entry_get_at(SpmMatrix *m, size_t row, size_t col) {
     size_t entry_index = entry_index_get_at(m, row, col);
-    size_t entry_index_end = *(size_t *)spm_list_atc(&m->row_indexes, row+1);
+    size_t entry_index_end = spm_list_size_get(&m->row_indexes, row+1);
 
     if (entry_index == entry_index_end) {
         return NULL;
     }
 
-    Entry * entry = spm_list_at(&m->entries, entry_index);
+    Entry * entry = spm_list_entry_at(&m->entries, entry_index);
 
     if (entry->col_index != col) {
         return NULL;
@@ -581,10 +587,10 @@ inline Entry const * entry_getc_at(SpmMatrix const *m, size_t row, size_t col) {
 
 size_t entry_index_get_at(SpmMatrix const *m, size_t row, size_t col) {
     if (row >= m->row_count || col >= m->col_count) {
-        return spm_list_get_count(&m->entries);
+        return spm_list_entry_get_count(&m->entries);
     }
-    size_t entry_index = *(size_t *)spm_list_atc(&m->row_indexes, row);
-    size_t entry_index_end = *(size_t *)spm_list_atc(&m->row_indexes, row+1);
+    size_t entry_index = spm_list_size_get(&m->row_indexes, row);
+    size_t entry_index_end = spm_list_size_get(&m->row_indexes, row+1);
 
     return entry_index_get_with_col(
         m->entries.items,
@@ -623,8 +629,15 @@ inline void entry_swap(Entry *a, Entry *b) {
 };
 
 
-inline void list_swap(SpmList *a, SpmList *b) {
-    SpmList c = *a;
+inline void list_size_swap(SpmListSize *a, SpmListSize *b) {
+    SpmListSize c = *a;
+    *a = *b;
+    *b = c;
+};
+
+
+inline void list_entry_swap(SpmListEntry *a, SpmListEntry *b) {
+    SpmListEntry c = *a;
     *a = *b;
     *b = c;
 };

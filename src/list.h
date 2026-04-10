@@ -8,41 +8,41 @@
 #include "./error.h"
 
 
-#define SPM_LIST_HEADER(SPM_SCALAR_T, TYPE_SUFFIX, FUNC_SUFFIX) \
+#define SPM_LIST_HEADER(S_T, T_SFX, F_SFX) \
 \
 typedef struct { \
-    SPM_SCALAR_T *items; \
+    S_T *items; \
     size_t count; \
     size_t capacity; \
-} SpmList##TYPE_SUFFIX; \
+} SpmList##T_SFX; \
 \
 \
 \
-SpmErr spm_list_##FUNC_SUFFIX##_init(SpmList##TYPE_SUFFIX *l, size_t initial_capacity); \
-SpmErr spm_list_##FUNC_SUFFIX##_cpy(SpmList##TYPE_SUFFIX *dst, SpmList##TYPE_SUFFIX const *src); \
-void spm_list_##FUNC_SUFFIX##_clear(SpmList##TYPE_SUFFIX *l); \
+SpmErr spm_list_##F_SFX##_init(SpmList##T_SFX *l, size_t initial_capacity); \
+SpmErr spm_list_##F_SFX##_cpy(SpmList##T_SFX *dst, SpmList##T_SFX const *src); \
+void spm_list_##F_SFX##_clear(SpmList##T_SFX *l); \
 \
-size_t spm_list_##FUNC_SUFFIX##_get_count(SpmList##TYPE_SUFFIX const *l); \
-SPM_SCALAR_T const * spm_list_##FUNC_SUFFIX##_atc(SpmList##TYPE_SUFFIX const *l, size_t index); \
-SPM_SCALAR_T * spm_list_##FUNC_SUFFIX##_at(SpmList##TYPE_SUFFIX *l, size_t index); \
-SPM_SCALAR_T spm_list_##FUNC_SUFFIX##_get(SpmList##TYPE_SUFFIX const *l, size_t index); \
-void spm_list_##FUNC_SUFFIX##_set(SpmList##TYPE_SUFFIX *l, size_t index, SPM_SCALAR_T); \
-SpmErr spm_list_##FUNC_SUFFIX##_insert_at(SpmList##TYPE_SUFFIX *l, size_t index, size_t insert_count); \
-SpmErr spm_list_##FUNC_SUFFIX##_remove_at(SpmList##TYPE_SUFFIX *l, size_t index, size_t delete_count); \
-SpmErr spm_list_##FUNC_SUFFIX##_append(SpmList##TYPE_SUFFIX *l, size_t insert_count); \
+size_t spm_list_##F_SFX##_get_count(SpmList##T_SFX const *l); \
+S_T const * spm_list_##F_SFX##_atc(SpmList##T_SFX const *l, size_t index); \
+S_T * spm_list_##F_SFX##_at(SpmList##T_SFX *l, size_t index); \
+S_T spm_list_##F_SFX##_get(SpmList##T_SFX const *l, size_t index); \
+void spm_list_##F_SFX##_set(SpmList##T_SFX *l, size_t index, S_T); \
+SpmErr spm_list_##F_SFX##_insert_at(SpmList##T_SFX *l, size_t index, size_t insert_count); \
+SpmErr spm_list_##F_SFX##_remove_at(SpmList##T_SFX *l, size_t index, size_t delete_count); \
+SpmErr spm_list_##F_SFX##_append(SpmList##T_SFX *l, size_t insert_count); \
 
 
 
 #define SPM_LIST__MIN_CAPACITY 8
-#define SPM_LIST_IMPLEMENTATION(SPM_SCALAR_T, TYPE_SUFFIX, FUNC_SUFFIX) \
+#define SPM_LIST_IMPLEMENTATION(S_T, T_SFX, F_SFX) \
 \
 \
  \
  \
-static SpmErr spm_list_##FUNC_SUFFIX##_ensure_capacity(SpmList##TYPE_SUFFIX *, size_t capacity); \
+static SpmErr spm_list_##F_SFX##_ensure_capacity(SpmList##T_SFX *, size_t capacity); \
  \
  \
-SpmErr spm_list_##FUNC_SUFFIX##_init(SpmList##TYPE_SUFFIX *list, size_t initial_capacity) { \
+SpmErr spm_list_##F_SFX##_init(SpmList##T_SFX *list, size_t initial_capacity) { \
     list->count = 0; \
     list->capacity = initial_capacity; \
     list->items = NULL; \
@@ -51,7 +51,7 @@ SpmErr spm_list_##FUNC_SUFFIX##_init(SpmList##TYPE_SUFFIX *list, size_t initial_
         return SPM_ERR__OK; \
     } \
  \
-    list->items = malloc(sizeof(SPM_SCALAR_T) * list->capacity); \
+    list->items = malloc(sizeof(S_T) * list->capacity); \
  \
     if (!list->items) { \
         list->capacity = 0; \
@@ -62,18 +62,18 @@ SpmErr spm_list_##FUNC_SUFFIX##_init(SpmList##TYPE_SUFFIX *list, size_t initial_
 }; \
  \
  \
-SpmErr spm_list_##FUNC_SUFFIX##_cpy(SpmList##TYPE_SUFFIX *dst, SpmList##TYPE_SUFFIX const *src) { \
+SpmErr spm_list_##F_SFX##_cpy(SpmList##T_SFX *dst, SpmList##T_SFX const *src) { \
  \
     if (!src->items || !src->capacity) { \
-        spm_list_##FUNC_SUFFIX##_clear(dst); \
+        spm_list_##F_SFX##_clear(dst); \
         return SPM_ERR__OK; \
     } \
  \
     void *new_items; \
     if (dst->items) { \
-        new_items = realloc(dst->items, sizeof(SPM_SCALAR_T)*src->capacity); \
+        new_items = realloc(dst->items, sizeof(S_T)*src->capacity); \
     } else { \
-        new_items = malloc(sizeof(SPM_SCALAR_T)*src->capacity); \
+        new_items = malloc(sizeof(S_T)*src->capacity); \
     } \
  \
     if (!new_items) { \
@@ -83,13 +83,13 @@ SpmErr spm_list_##FUNC_SUFFIX##_cpy(SpmList##TYPE_SUFFIX *dst, SpmList##TYPE_SUF
     dst->count = src->count; \
     dst->capacity = src->capacity; \
  \
-    memcpy(dst->items, src->items, sizeof(SPM_SCALAR_T)*src->capacity); \
+    memcpy(dst->items, src->items, sizeof(S_T)*src->capacity); \
  \
     return SPM_ERR__OK; \
 }; \
  \
  \
-void spm_list_##FUNC_SUFFIX##_clear(SpmList##TYPE_SUFFIX *list) { \
+void spm_list_##F_SFX##_clear(SpmList##T_SFX *list) { \
     if (list->items) { \
         free(list->items); \
         list->items = NULL; \
@@ -99,39 +99,39 @@ void spm_list_##FUNC_SUFFIX##_clear(SpmList##TYPE_SUFFIX *list) { \
 }; \
  \
  \
-inline size_t spm_list_##FUNC_SUFFIX##_get_count(SpmList##TYPE_SUFFIX const *list) { \
+inline size_t spm_list_##F_SFX##_get_count(SpmList##T_SFX const *list) { \
     return list->count; \
 }; \
  \
  \
-inline SPM_SCALAR_T * spm_list_##FUNC_SUFFIX##_at(SpmList##TYPE_SUFFIX *list, size_t index) { \
+inline S_T * spm_list_##F_SFX##_at(SpmList##T_SFX *list, size_t index) { \
     return list->items + index; \
 }; \
  \
  \
-inline SPM_SCALAR_T const * spm_list_##FUNC_SUFFIX##_atc(SpmList##TYPE_SUFFIX const *list, size_t index) { \
-    return spm_list_##FUNC_SUFFIX##_at((SpmList##TYPE_SUFFIX *)(list), index); \
+inline S_T const * spm_list_##F_SFX##_atc(SpmList##T_SFX const *list, size_t index) { \
+    return spm_list_##F_SFX##_at((SpmList##T_SFX *)(list), index); \
 }; \
  \
  \
-inline SPM_SCALAR_T spm_list_##FUNC_SUFFIX##_get(SpmList##TYPE_SUFFIX const *list, size_t index) { \
+inline S_T spm_list_##F_SFX##_get(SpmList##T_SFX const *list, size_t index) { \
     return list->items[index]; \
 }; \
  \
  \
-inline void spm_list_##FUNC_SUFFIX##_set(SpmList##TYPE_SUFFIX *list, size_t index, SPM_SCALAR_T value) { \
-    memcpy(list->items + index, &value, sizeof(SPM_SCALAR_T)); \
+inline void spm_list_##F_SFX##_set(SpmList##T_SFX *list, size_t index, S_T value) { \
+    memcpy(list->items + index, &value, sizeof(S_T)); \
 }; \
  \
  \
-SpmErr spm_list_##FUNC_SUFFIX##_insert_at(SpmList##TYPE_SUFFIX *list, size_t index, size_t insert_count) { \
+SpmErr spm_list_##F_SFX##_insert_at(SpmList##T_SFX *list, size_t index, size_t insert_count) { \
     SpmErr err; \
  \
-    if (index > spm_list_##FUNC_SUFFIX##_get_count(list)) { \
+    if (index > spm_list_##F_SFX##_get_count(list)) { \
         return SPM_ERR__OUT_INDEX; \
     } \
  \
-    err = spm_list_##FUNC_SUFFIX##_ensure_capacity(list, spm_list_##FUNC_SUFFIX##_get_count(list) + insert_count); \
+    err = spm_list_##F_SFX##_ensure_capacity(list, spm_list_##F_SFX##_get_count(list) + insert_count); \
  \
     if (err != SPM_ERR__OK) { \
         return err; \
@@ -141,7 +141,7 @@ SpmErr spm_list_##FUNC_SUFFIX##_insert_at(SpmList##TYPE_SUFFIX *list, size_t ind
         memcpy( \
             list->items + (i + insert_count -1), \
             list->items + (i - 1), \
-            sizeof(SPM_SCALAR_T) \
+            sizeof(S_T) \
         ); \
     } \
     list->count += insert_count; \
@@ -150,10 +150,10 @@ SpmErr spm_list_##FUNC_SUFFIX##_insert_at(SpmList##TYPE_SUFFIX *list, size_t ind
 }; \
  \
  \
-SpmErr spm_list_##FUNC_SUFFIX##_remove_at(SpmList##TYPE_SUFFIX *list, size_t index, size_t delete_count) { \
+SpmErr spm_list_##F_SFX##_remove_at(SpmList##T_SFX *list, size_t index, size_t delete_count) { \
     SpmErr err; \
  \
-    if (delete_count + index > spm_list_##FUNC_SUFFIX##_get_count(list)) { \
+    if (delete_count + index > spm_list_##F_SFX##_get_count(list)) { \
         return SPM_ERR__OUT_INDEX; \
     } \
  \
@@ -165,23 +165,23 @@ SpmErr spm_list_##FUNC_SUFFIX##_remove_at(SpmList##TYPE_SUFFIX *list, size_t ind
         memcpy( \
             list->items + (i - delete_count), \
             list->items + i, \
-            sizeof(SPM_SCALAR_T) \
+            sizeof(S_T) \
         ); \
     } \
  \
-    spm_list_##FUNC_SUFFIX##_ensure_capacity(list, list->count - delete_count); \
+    spm_list_##F_SFX##_ensure_capacity(list, list->count - delete_count); \
     list->count -= delete_count; \
  \
     return SPM_ERR__OK; \
 }; \
  \
  \
-inline SpmErr spm_list_##FUNC_SUFFIX##_append(SpmList##TYPE_SUFFIX *list, size_t insert_count) { \
-    return spm_list_##FUNC_SUFFIX##_insert_at(list, list->count, insert_count); \
+inline SpmErr spm_list_##F_SFX##_append(SpmList##T_SFX *list, size_t insert_count) { \
+    return spm_list_##F_SFX##_insert_at(list, list->count, insert_count); \
 }; \
  \
  \
-SpmErr spm_list_##FUNC_SUFFIX##_ensure_capacity(SpmList##TYPE_SUFFIX *list, size_t capacity) { \
+SpmErr spm_list_##F_SFX##_ensure_capacity(SpmList##T_SFX *list, size_t capacity) { \
     size_t const curr_capacity = list->capacity; \
  \
     if (capacity < SPM_LIST__MIN_CAPACITY) { \
@@ -202,9 +202,9 @@ SpmErr spm_list_##FUNC_SUFFIX##_ensure_capacity(SpmList##TYPE_SUFFIX *list, size
  \
     void *new_items; \
     if (!list->items) { \
-        new_items = malloc(new_capacity*sizeof(SPM_SCALAR_T)); \
+        new_items = malloc(new_capacity*sizeof(S_T)); \
     } else { \
-        new_items = realloc(list->items, new_capacity*sizeof(SPM_SCALAR_T)); \
+        new_items = realloc(list->items, new_capacity*sizeof(S_T)); \
     } \
  \
     if (!new_items) { \

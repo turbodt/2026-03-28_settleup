@@ -4,10 +4,10 @@
 
 
 #define LIST_MIN_CAPACITY 8
-static SpmErr ensure_capacity(List *, size_t capacity);
+static SpmErr ensure_capacity(SpmList *, size_t capacity);
 
 
-SpmErr list_init(List *list, size_t item_size, size_t initial_capacity) {
+SpmErr spm_list_init(SpmList *list, size_t item_size, size_t initial_capacity) {
     list->item_size = item_size;
     list->count = 0;
     list->capacity = initial_capacity;
@@ -29,10 +29,10 @@ SpmErr list_init(List *list, size_t item_size, size_t initial_capacity) {
 };
 
 
-SpmErr list_cpy(List *dst, List const *src) {
+SpmErr spm_list_cpy(SpmList *dst, SpmList const *src) {
 
     if (!src->items || !src->capacity) {
-        list_clear(dst);
+        spm_list_clear(dst);
         return SPM_ERR__OK;
     }
 
@@ -57,7 +57,7 @@ SpmErr list_cpy(List *dst, List const *src) {
 };
 
 
-void list_clear(List *list) {
+void spm_list_clear(SpmList *list) {
     if (list->items) {
         free(list->items);
         list->items = NULL;
@@ -67,29 +67,29 @@ void list_clear(List *list) {
 };
 
 
-inline size_t list_get_count(List const *list) {
+inline size_t spm_list_get_count(SpmList const *list) {
     return list->count;
 };
 
 
-inline void * list_at(List *list, size_t index) {
+inline void * spm_list_at(SpmList *list, size_t index) {
     return list->items + index*list->item_size;
 };
 
 
-inline void const * list_atc(List const *list, size_t index) {
-    return list_at((List *)(list), index);
+inline void const * spm_list_atc(SpmList const *list, size_t index) {
+    return spm_list_at((SpmList *)(list), index);
 };
 
 
-SpmErr list_insert_at(List *list, size_t index, size_t insert_count) {
+SpmErr spm_list_insert_at(SpmList *list, size_t index, size_t insert_count) {
     SpmErr err;
 
-    if (index > list_get_count(list)) {
+    if (index > spm_list_get_count(list)) {
         return SPM_ERR__OUT_INDEX;
     }
 
-    err = ensure_capacity(list, list_get_count(list) + insert_count);
+    err = ensure_capacity(list, spm_list_get_count(list) + insert_count);
 
     if (err != SPM_ERR__OK) {
         return err;
@@ -108,10 +108,10 @@ SpmErr list_insert_at(List *list, size_t index, size_t insert_count) {
 };
 
 
-SpmErr list_remove_at(List *list, size_t index, size_t delete_count) {
+SpmErr spm_list_remove_at(SpmList *list, size_t index, size_t delete_count) {
     SpmErr err;
 
-    if (delete_count + index > list_get_count(list)) {
+    if (delete_count + index > spm_list_get_count(list)) {
         return SPM_ERR__OUT_INDEX;
     }
 
@@ -134,12 +134,12 @@ SpmErr list_remove_at(List *list, size_t index, size_t delete_count) {
 };
 
 
-inline SpmErr list_append(List *list, size_t insert_count) {
-    return list_insert_at(list, list->count, insert_count);
+inline SpmErr spm_list_append(SpmList *list, size_t insert_count) {
+    return spm_list_insert_at(list, list->count, insert_count);
 };
 
 
-SpmErr ensure_capacity(List *list, size_t capacity) {
+SpmErr ensure_capacity(SpmList *list, size_t capacity) {
     size_t const curr_capacity = list->capacity;
 
     if (capacity < LIST_MIN_CAPACITY) {

@@ -22,7 +22,7 @@ typedef struct {
     int (* const call)(void);
 } Test;
 
-static void list_int_print(List const *);
+static void spm_list_int_print(SpmList const *);
 static void spm_matrix_print(SpmMatrix const *);
 static int test_list_001(void);
 static int test_list_002(void);
@@ -76,68 +76,68 @@ int main(void) {
 
 int test_list_001(void) {
     int err;
-    List numbers = {0};
-    list_init(&numbers, sizeof(int), 10);
-    ASSERT_EQ(0, list_get_count(&numbers));
+    SpmList numbers = {0};
+    spm_list_init(&numbers, sizeof(int), 10);
+    ASSERT_EQ(0, spm_list_get_count(&numbers));
 
-    err = list_insert_at(&numbers, 0, 10);
+    err = spm_list_insert_at(&numbers, 0, 10);
     ASSERT_NOT(err);
-    ASSERT_EQ(10, list_get_count(&numbers));
+    ASSERT_EQ(10, spm_list_get_count(&numbers));
 
-    for (size_t i = 0; i < list_get_count(&numbers); i++) {
-        *(int*)list_at(&numbers, i) = (int) i;
+    for (size_t i = 0; i < spm_list_get_count(&numbers); i++) {
+        *(int*)spm_list_at(&numbers, i) = (int) i;
     }
 
-    for (size_t i = 0; i < list_get_count(&numbers); i++) {
-        ASSERT_EQ(*(int*)list_at(&numbers, i), (double) i);
+    for (size_t i = 0; i < spm_list_get_count(&numbers); i++) {
+        ASSERT_EQ(*(int*)spm_list_at(&numbers, i), (double) i);
     }
 
-    err = list_insert_at(&numbers, 3, 18);
+    err = spm_list_insert_at(&numbers, 3, 18);
     ASSERT_NOT(err);
-    ASSERT_EQ(28, list_get_count(&numbers));
+    ASSERT_EQ(28, spm_list_get_count(&numbers));
     for (size_t i = 0; i < 3; i++) {
-        ASSERT_EQ(*(int*)list_at(&numbers, i), (double) i);
+        ASSERT_EQ(*(int*)spm_list_at(&numbers, i), (double) i);
     }
     for (size_t i = 21; i < 28; i++) {
-        ASSERT_EQ(*(int*)list_at(&numbers, i), (double) i-18);
+        ASSERT_EQ(*(int*)spm_list_at(&numbers, i), (double) i-18);
     }
 
 
-    err = list_remove_at(&numbers, 5, 7);
+    err = spm_list_remove_at(&numbers, 5, 7);
     ASSERT_NOT(err);
-    ASSERT_EQ(21, list_get_count(&numbers));
+    ASSERT_EQ(21, spm_list_get_count(&numbers));
     for (size_t i = 0; i < 3; i++) {
-        ASSERT_EQ(*(int*)list_at(&numbers, i), (double) i);
+        ASSERT_EQ(*(int*)spm_list_at(&numbers, i), (double) i);
     }
     for (size_t i = 14; i < 21; i++) {
-        ASSERT_EQ(*(int*)list_at(&numbers, i), (double) i-11);
+        ASSERT_EQ(*(int*)spm_list_at(&numbers, i), (double) i-11);
     }
 
-    list_clear(&numbers);
+    spm_list_clear(&numbers);
     return 0;
 }
 
 
 int test_list_002(void) {
     int err;
-    List numbers = {0};
-    list_init(&numbers, sizeof(int), 2);
+    SpmList numbers = {0};
+    spm_list_init(&numbers, sizeof(int), 2);
 
     for (int i = 0; i < 100; i++) {
-        err = list_insert_at(&numbers, list_get_count(&numbers), 1);
+        err = spm_list_insert_at(&numbers, spm_list_get_count(&numbers), 1);
         ASSERT_NOT(err);
-        *(int*)list_at(&numbers, i) = i;
+        *(int*)spm_list_at(&numbers, i) = i;
     }
-    ASSERT_EQ(100, list_get_count(&numbers));
+    ASSERT_EQ(100, spm_list_get_count(&numbers));
 
-    list_remove_at(&numbers, 0, 10);
-    ASSERT_EQ(90, list_get_count(&numbers));
-    ASSERT_EQ(10, *(int*)list_at(&numbers, 0));
+    spm_list_remove_at(&numbers, 0, 10);
+    ASSERT_EQ(90, spm_list_get_count(&numbers));
+    ASSERT_EQ(10, *(int*)spm_list_at(&numbers, 0));
 
-    list_remove_at(&numbers, list_get_count(&numbers) - 10, 10);
-    ASSERT_EQ(80, list_get_count(&numbers));
+    spm_list_remove_at(&numbers, spm_list_get_count(&numbers) - 10, 10);
+    ASSERT_EQ(80, spm_list_get_count(&numbers));
 
-    list_clear(&numbers);
+    spm_list_clear(&numbers);
     return 0;
 }
 
@@ -599,13 +599,13 @@ int test_matrix_011(void) {
 }
 
 
-void list_int_print(List const *list) {
-    printf("%zu: [", list_get_count(list));
-    for (size_t i = 0; i< list_get_count(list); i++) {
+void spm_list_int_print(SpmList const *list) {
+    printf("%zu: [", spm_list_get_count(list));
+    for (size_t i = 0; i< spm_list_get_count(list); i++) {
         if (i > 0) {
             printf(", ");
         }
-        printf("%d", *(int *)list_atc(list, i));
+        printf("%d", *(int *)spm_list_atc(list, i));
     }
     printf("]\n");
 };

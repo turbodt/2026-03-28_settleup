@@ -1,5 +1,5 @@
-#ifndef MATRIX_CSR_LIST_H
-#define MATRIX_CSR_LIST_H
+#ifndef SPM_LIST_H
+#define SPM_LIST_H
 
 
 #include <stddef.h>

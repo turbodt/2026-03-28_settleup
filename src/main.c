@@ -23,7 +23,7 @@ typedef struct {
 } Test;
 
 static void list_int_print(List const *);
-static void spm_matrix_print(MatrixCSR const *);
+static void spm_matrix_print(SpmMatrix const *);
 static int test_list_001(void);
 static int test_list_002(void);
 static int test_matrix_001(void);
@@ -144,7 +144,7 @@ int test_list_002(void) {
 
 int test_matrix_001(void) {
     int err;
-    MatrixCSR *m = spm_matrix_make(4, 4);
+    SpmMatrix *m = spm_matrix_make(4, 4);
     ASSERT_NOT_NULL(m);
     ASSERT_EQ(4, spm_matrix_get_row_count(m));
     ASSERT_EQ(4, spm_matrix_get_col_count(m));
@@ -203,7 +203,7 @@ int test_matrix_001(void) {
 
 int test_matrix_002(void) {
     int err;
-    MatrixCSR *A = spm_matrix_make(2, 4);
+    SpmMatrix *A = spm_matrix_make(2, 4);
     ASSERT_NOT_NULL(A);
     ASSERT_EQ(2, spm_matrix_get_row_count(A));
     ASSERT_EQ(4, spm_matrix_get_col_count(A));
@@ -213,7 +213,7 @@ int test_matrix_002(void) {
     ASSERT_NOT(spm_matrix_set(A, 0, 2, 3.0));
     ASSERT_NOT(spm_matrix_set(A, 1, 3, 4.0));
 
-    MatrixCSR *B = spm_matrix_make(4, 4);
+    SpmMatrix *B = spm_matrix_make(4, 4);
     ASSERT_NOT_NULL(B);
     ASSERT_EQ(4, spm_matrix_get_row_count(B));
     ASSERT_EQ(4, spm_matrix_get_col_count(B));
@@ -225,7 +225,7 @@ int test_matrix_002(void) {
     ASSERT_NOT(spm_matrix_set(B, 2, 3, 5.0));
     ASSERT_NOT(spm_matrix_set(B, 3, 3, 6.0));
 
-    MatrixCSR *C = spm_matrix_prod(A, B);
+    SpmMatrix *C = spm_matrix_prod(A, B);
     ASSERT_NOT_NULL(C);
 
     for (size_t i = 0; i < spm_matrix_get_row_count(C); i++) {
@@ -254,7 +254,7 @@ int test_matrix_002(void) {
 
 
 int test_matrix_003(void) {
-    MatrixCSR *m = spm_matrix_make(3, 3);
+    SpmMatrix *m = spm_matrix_make(3, 3);
     ASSERT_NOT_NULL(m);
 
     ASSERT_NOT(spm_matrix_set(m, 1, 1, 10.5));
@@ -281,7 +281,7 @@ int test_matrix_003(void) {
 
 
 int test_matrix_004(void) {
-    MatrixCSR *m = spm_matrix_make(2, 5);
+    SpmMatrix *m = spm_matrix_make(2, 5);
     ASSERT_NOT_NULL(m);
 
     ASSERT_NOT(spm_matrix_set(m, 0, 4, 9.9));
@@ -309,20 +309,20 @@ int test_matrix_004(void) {
 
 
 int test_matrix_005(void) {
-    MatrixCSR *A = spm_matrix_make(2, 3);
+    SpmMatrix *A = spm_matrix_make(2, 3);
     ASSERT_NOT_NULL(A);
     ASSERT_NOT(spm_matrix_set(A, 0, 0, 1.0));
     ASSERT_NOT(spm_matrix_set(A, 0, 1, 2.0));
     ASSERT_NOT(spm_matrix_set(A, 1, 2, 3.0));
 
-    MatrixCSR *BadDim = spm_matrix_make(4, 2);
-    MatrixCSR *C_err = spm_matrix_prod(A, BadDim);
+    SpmMatrix *BadDim = spm_matrix_make(4, 2);
+    SpmMatrix *C_err = spm_matrix_prod(A, BadDim);
     ASSERT_NULL(C_err);
     spm_matrix_destroy(BadDim);
 
-    MatrixCSR *Zero = spm_matrix_make(3, 2);
+    SpmMatrix *Zero = spm_matrix_make(3, 2);
     ASSERT_NOT_NULL(Zero);
-    MatrixCSR *C_zero = spm_matrix_prod(A, Zero);
+    SpmMatrix *C_zero = spm_matrix_prod(A, Zero);
     ASSERT_NOT_NULL(C_zero);
     for (size_t i = 0; i < spm_matrix_get_row_count(C_zero); i++) {
         for (size_t j = 0; j < spm_matrix_get_col_count(C_zero); j++) {
@@ -330,13 +330,13 @@ int test_matrix_005(void) {
         }
     }
 
-    MatrixCSR *Id = spm_matrix_make(3, 3);
+    SpmMatrix *Id = spm_matrix_make(3, 3);
     ASSERT_NOT_NULL(Id);
     ASSERT_NOT(spm_matrix_set(Id, 0, 0, 1.0));
     ASSERT_NOT(spm_matrix_set(Id, 1, 1, 1.0));
     ASSERT_NOT(spm_matrix_set(Id, 2, 2, 1.0));
 
-    MatrixCSR *C_id = spm_matrix_prod(A, Id);
+    SpmMatrix *C_id = spm_matrix_prod(A, Id);
     ASSERT_NOT_NULL(C_id);
     ASSERT_EQ(1.0, spm_matrix_get(C_id, 0, 0));
     ASSERT_EQ(2.0, spm_matrix_get(C_id, 0, 1));
@@ -354,7 +354,7 @@ int test_matrix_005(void) {
 
 
 int test_matrix_006(void) {
-    MatrixCSR *m = spm_matrix_make(3, 3);
+    SpmMatrix *m = spm_matrix_make(3, 3);
     ASSERT_NOT_NULL(m);
 
     ASSERT_EQ(SPM_ERR__OUT_INDEX, spm_matrix_set(m, 3, 0, 1.0));
@@ -367,7 +367,7 @@ int test_matrix_006(void) {
 
     spm_matrix_transpose(m);
 
-    MatrixCSR *m2 = spm_matrix_make(2, 4);
+    SpmMatrix *m2 = spm_matrix_make(2, 4);
     spm_matrix_transpose(m2);
 
     ASSERT_NOT(spm_matrix_set(m2, 3, 1, 5.0));
@@ -380,7 +380,7 @@ int test_matrix_006(void) {
 
 
 int test_matrix_007(void) {
-    MatrixCSR *m = spm_matrix_make(3, 3);
+    SpmMatrix *m = spm_matrix_make(3, 3);
 
     ASSERT_NOT(spm_matrix_set(m, 0, 0, 1.0));
     ASSERT_NOT(spm_matrix_set(m, 1, 1, 2.0));
@@ -397,19 +397,19 @@ int test_matrix_007(void) {
 
 
 int test_matrix_prod_007(void) {
-    MatrixCSR *A = spm_matrix_make(2, 3);
+    SpmMatrix *A = spm_matrix_make(2, 3);
     ASSERT_NOT(spm_matrix_set(A, 0, 0, 1.0));
     ASSERT_NOT(spm_matrix_set(A, 0, 1, 2.0));
     ASSERT_NOT(spm_matrix_set(A, 1, 1, 3.0));
     ASSERT_NOT(spm_matrix_set(A, 1, 2, 4.0));
 
-    MatrixCSR *B = spm_matrix_make(3, 2);
+    SpmMatrix *B = spm_matrix_make(3, 2);
     ASSERT_NOT(spm_matrix_set(B, 0, 0, 2.0));
     ASSERT_NOT(spm_matrix_set(B, 1, 0, 1.0));
     ASSERT_NOT(spm_matrix_set(B, 1, 1, 3.0));
     ASSERT_NOT(spm_matrix_set(B, 2, 1, 1.0));
 
-    MatrixCSR *C = spm_matrix_prod(A, B);
+    SpmMatrix *C = spm_matrix_prod(A, B);
     ASSERT_NOT_NULL(C);
     ASSERT_EQ(2, spm_matrix_get_row_count(C));
     ASSERT_EQ(2, spm_matrix_get_col_count(C));
@@ -427,19 +427,19 @@ int test_matrix_prod_007(void) {
 
 
 int test_matrix_008(void) {
-    MatrixCSR *A = spm_matrix_make(2, 3);
+    SpmMatrix *A = spm_matrix_make(2, 3);
     ASSERT_NOT(spm_matrix_set(A, 0, 0, 1.0));
     ASSERT_NOT(spm_matrix_set(A, 0, 1, 2.0));
     ASSERT_NOT(spm_matrix_set(A, 1, 2, 3.0));
 
-    MatrixCSR *B = spm_matrix_make(2, 3);
+    SpmMatrix *B = spm_matrix_make(2, 3);
     ASSERT_NOT(spm_matrix_set(B, 0, 0, 2.0));
     ASSERT_NOT(spm_matrix_set(B, 0, 1, 1.0));
     ASSERT_NOT(spm_matrix_set(B, 1, 1, 3.0));
     ASSERT_NOT(spm_matrix_set(B, 1, 2, 1.0));
     spm_matrix_transpose(B);
 
-    MatrixCSR *C = spm_matrix_prod(A, B);
+    SpmMatrix *C = spm_matrix_prod(A, B);
     ASSERT_NOT_NULL(C);
 
     ASSERT_EQ(4.0, spm_matrix_get(C, 0, 0));
@@ -455,7 +455,7 @@ int test_matrix_009(void) {
     // A_orig = [1.0, 2.0]
     //          [0.0, 0.0]
     //          [0.0, 0.0]
-    MatrixCSR *A = spm_matrix_make(3, 2);
+    SpmMatrix *A = spm_matrix_make(3, 2);
     ASSERT_NOT(spm_matrix_set(A, 0, 0, 1.0));
     ASSERT_NOT(spm_matrix_set(A, 0, 1, 2.0));
     spm_matrix_transpose(A);
@@ -463,11 +463,11 @@ int test_matrix_009(void) {
     // B_orig = [1.0, 0.0]
     //          [3.0, 0.0]
     //          [0.0, 0.0]
-    MatrixCSR *B = spm_matrix_make(3, 2);
+    SpmMatrix *B = spm_matrix_make(3, 2);
     ASSERT_NOT(spm_matrix_set(B, 0, 0, 1.0));
     ASSERT_NOT(spm_matrix_set(B, 1, 0, 3.0));
 
-    MatrixCSR *C = spm_matrix_prod(A, B);
+    SpmMatrix *C = spm_matrix_prod(A, B);
     ASSERT_NOT_NULL(C);
     ASSERT_EQ(2, spm_matrix_get_row_count(C));
     ASSERT_EQ(2, spm_matrix_get_col_count(C));
@@ -494,7 +494,7 @@ int test_matrix_009(void) {
 int test_matrix_010(void) {
     // A_orig = [1.0, 2.0, 0.0]
     //          [0.0, 3.0, 4.0]
-    MatrixCSR *A = spm_matrix_make(2, 3);
+    SpmMatrix *A = spm_matrix_make(2, 3);
     ASSERT_NOT_NULL(A);
     ASSERT_NOT(spm_matrix_set(A, 0, 0, 1.0));
     ASSERT_NOT(spm_matrix_set(A, 0, 1, 2.0));
@@ -506,7 +506,7 @@ int test_matrix_010(void) {
     //          [2.0, 0.0]
     //          [0.0, 1.0]
     //          [0.0, 3.0]
-    MatrixCSR *B = spm_matrix_make(4, 2);
+    SpmMatrix *B = spm_matrix_make(4, 2);
     ASSERT_NOT_NULL(B);
     ASSERT_NOT(spm_matrix_set(B, 0, 0, 1.0));
     ASSERT_NOT(spm_matrix_set(B, 1, 0, 2.0));
@@ -514,7 +514,7 @@ int test_matrix_010(void) {
     ASSERT_NOT(spm_matrix_set(B, 3, 1, 3.0));
     spm_matrix_transpose(B);
 
-    MatrixCSR *C = spm_matrix_prod(A, B);
+    SpmMatrix *C = spm_matrix_prod(A, B);
     ASSERT_NOT_NULL(C);
     ASSERT_EQ(3, spm_matrix_get_row_count(C));
     ASSERT_EQ(4, spm_matrix_get_col_count(C));
@@ -553,7 +553,7 @@ int test_matrix_011(void) {
     // A_orig = [1.0, 2.0]
     //          [0.0, 3.0]
     //          [4.0, 0.0]
-    MatrixCSR *A = spm_matrix_make(3, 2);
+    SpmMatrix *A = spm_matrix_make(3, 2);
     ASSERT_NOT_NULL(A);
     ASSERT_NOT(spm_matrix_set(A, 0, 0, 1.0));
     ASSERT_NOT(spm_matrix_set(A, 0, 1, 2.0));
@@ -564,14 +564,14 @@ int test_matrix_011(void) {
     // B_orig = [1.0, 0.0]
     //          [2.0, 1.0]
     //          [0.0, 3.0]
-    MatrixCSR *B = spm_matrix_make(3, 2);
+    SpmMatrix *B = spm_matrix_make(3, 2);
     ASSERT_NOT_NULL(B);
     ASSERT_NOT(spm_matrix_set(B, 0, 0, 1.0));
     ASSERT_NOT(spm_matrix_set(B, 1, 0, 2.0));
     ASSERT_NOT(spm_matrix_set(B, 1, 1, 1.0));
     ASSERT_NOT(spm_matrix_set(B, 2, 1, 3.0));
 
-    MatrixCSR *C = spm_matrix_prod(A, B);
+    SpmMatrix *C = spm_matrix_prod(A, B);
     ASSERT_NOT_NULL(C);
     ASSERT_EQ(2, spm_matrix_get_row_count(C));
     ASSERT_EQ(2, spm_matrix_get_col_count(C));
@@ -611,7 +611,7 @@ void list_int_print(List const *list) {
 };
 
 
-void spm_matrix_print(MatrixCSR const *m) {
+void spm_matrix_print(SpmMatrix const *m) {
     for (size_t i = 0; i < spm_matrix_get_row_count(m); i++) {
         for (size_t j = 0; j < spm_matrix_get_col_count(m); j++) {
             if (j > 0) {

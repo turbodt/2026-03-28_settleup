@@ -20,16 +20,16 @@ enum {
 };
 typedef int ListErr;
 
-ListErr list_init(List *, size_t item_size, size_t initial_capacity);
-ListErr list_cpy(List *, List const *);
-void list_clear(List *);
+ListErr list_init(List *l, size_t item_size, size_t initial_capacity);
+ListErr list_cpy(List *dst, List const *src);
+void list_clear(List *l);
 
-size_t list_get_count(List const *);
-void const * list_atc(List const *, size_t index);
-void * list_at(List *, size_t index);
-ListErr list_insert_at(List *, size_t index, size_t insert_count);
-ListErr list_remove_at(List *, size_t index, size_t delete_count);
-ListErr list_append(List *, size_t insert_count);
+size_t list_get_count(List const *l);
+void const * list_atc(List const *l, size_t index);
+void * list_at(List *l, size_t index);
+ListErr list_insert_at(List *l, size_t index, size_t insert_count);
+ListErr list_remove_at(List *l, size_t index, size_t delete_count);
+ListErr list_append(List *l, size_t insert_count);
 
 
 

@@ -58,7 +58,7 @@ static void size_swap(size_t *, size_t *);
 static void ptr_swap(void **, void **);
 
 
-MatrixCSR * matrix_csr_make(size_t row_count, size_t col_count) {
+MatrixCSR * spm_matrix_make(size_t row_count, size_t col_count) {
     int err;
 
     MatrixCSR *m = malloc(sizeof(MatrixCSR));
@@ -115,7 +115,7 @@ MatrixMakeAllocFailed:
 
 
 
-MatrixCSR * matrix_csr_clone(MatrixCSR const *src) {
+MatrixCSR * spm_matrix_clone(MatrixCSR const *src) {
     SpmErr err;
     MatrixCSR *dst = malloc(sizeof(MatrixCSR));
     if (!dst) {
@@ -147,12 +147,12 @@ MatrixCSR * matrix_csr_clone(MatrixCSR const *src) {
 
     return dst;
 MatrixCloneListCopyFailed:
-    matrix_csr_destroy(dst);
+    spm_matrix_destroy(dst);
     return NULL;
 };
 
 
-void matrix_csr_destroy(MatrixCSR *m) {
+void spm_matrix_destroy(MatrixCSR *m) {
     list_clear(&m->col_indexes);
     list_clear(&m->row_indexes);
     list_clear(&m->entries);
@@ -160,17 +160,17 @@ void matrix_csr_destroy(MatrixCSR *m) {
 };
 
 
-inline size_t matrix_csr_get_col_count(MatrixCSR const *m) {
+inline size_t spm_matrix_get_col_count(MatrixCSR const *m) {
     return __MATRIX_CSR_IS_TRANSPOSED(m) ? m->row_count : m->col_count;
 };
 
 
-inline size_t matrix_csr_get_row_count(MatrixCSR const *m) {
+inline size_t spm_matrix_get_row_count(MatrixCSR const *m) {
     return __MATRIX_CSR_IS_TRANSPOSED(m) ? m->col_count : m->row_count;
 };
 
 
-MATRIX_CSR_SCALAR_T matrix_csr_get(MatrixCSR const *m, size_t row, size_t col) {
+MATRIX_CSR_SCALAR_T spm_matrix_get(MatrixCSR const *m, size_t row, size_t col) {
     if (__MATRIX_CSR_IS_TRANSPOSED(m)) size_swap(&row, &col);
 
     if (row >= m->row_count || col >= m->col_count) {
@@ -185,7 +185,7 @@ MATRIX_CSR_SCALAR_T matrix_csr_get(MatrixCSR const *m, size_t row, size_t col) {
 };
 
 
-SpmErr matrix_csr_set(
+SpmErr spm_matrix_set(
     MatrixCSR *m,
     size_t row,
     size_t col,
@@ -214,22 +214,22 @@ SpmErr matrix_csr_set(
 };
 
 
-inline void matrix_csr_transpose(MatrixCSR *m) {
+inline void spm_matrix_transpose(MatrixCSR *m) {
     matrix_toggle_transpose_bool(m);
     //matrix_transpose_values(m);
 };
 
 
-MatrixCSR * matrix_csr_prod(MatrixCSR const *A, MatrixCSR const *B) {
+MatrixCSR * spm_matrix_prod(MatrixCSR const *A, MatrixCSR const *B) {
     SpmErr err;
-    size_t const common_count = matrix_csr_get_col_count(A);
-    if (common_count != matrix_csr_get_row_count(B)) {
+    size_t const common_count = spm_matrix_get_col_count(A);
+    if (common_count != spm_matrix_get_row_count(B)) {
         goto MatrixProdDimErr;
     }
 
-    size_t const row_count = matrix_csr_get_row_count(A);
-    size_t const col_count = matrix_csr_get_col_count(B);
-    MatrixCSR *C = matrix_csr_make(row_count, col_count);
+    size_t const row_count = spm_matrix_get_row_count(A);
+    size_t const col_count = spm_matrix_get_col_count(B);
+    MatrixCSR *C = spm_matrix_make(row_count, col_count);
 
     if (!C) {
         goto MatrixProdAllocErr;
@@ -260,7 +260,7 @@ MatrixCSR * matrix_csr_prod(MatrixCSR const *A, MatrixCSR const *B) {
     return C;
 
 MatrixProdEntryAllocErr:
-    matrix_csr_destroy(C);
+    spm_matrix_destroy(C);
 MatrixProdAllocErr:
 MatrixProdDimErr:
     return NULL;
@@ -272,7 +272,7 @@ SpmErr matrix_prod_tn(
     MatrixCSR const *B,
     MatrixCSR *C
 ) {
-    MatrixCSR *At = matrix_csr_clone(A);
+    MatrixCSR *At = spm_matrix_clone(A);
     if (!At) {
         return SPM_ERR__ALLOC;
     }
@@ -282,7 +282,7 @@ SpmErr matrix_prod_tn(
 
     SpmErr err = matrix_prod_nn(At, B, C);
 
-    matrix_csr_destroy(At);
+    spm_matrix_destroy(At);
     return err;
 }
 
@@ -293,8 +293,8 @@ SpmErr matrix_prod_nn(
     MatrixCSR *C
 ) {
     SpmErr err = SPM_ERR__OK;
-    size_t const row_count = matrix_csr_get_row_count(C);
-    size_t const col_count = matrix_csr_get_col_count(C);
+    size_t const row_count = spm_matrix_get_row_count(C);
+    size_t const col_count = spm_matrix_get_col_count(C);
 
     for (size_t row = 0; row < row_count; row++) {
         size_t const A_start = *(size_t *)list_atc(&A->row_indexes, row);
@@ -336,8 +336,8 @@ SpmErr matrix_prod_nt(
     MatrixCSR *C
 ) {
     SpmErr err = SPM_ERR__OK;
-    size_t const row_count = matrix_csr_get_row_count(C);
-    size_t const col_count = matrix_csr_get_col_count(C);
+    size_t const row_count = spm_matrix_get_row_count(C);
+    size_t const col_count = spm_matrix_get_col_count(C);
 
     for (size_t row = 0; row < row_count; row++) {
         size_t const A_start = *(size_t *)list_atc(&A->row_indexes, row);

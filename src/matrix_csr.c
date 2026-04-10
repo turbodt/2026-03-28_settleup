@@ -36,16 +36,16 @@ struct MatrixCSR {
 };
 
 
-static CSRErr matrix_prod_tn(MatrixCSR const *, MatrixCSR const *, MatrixCSR *);
-static CSRErr matrix_prod_nn(MatrixCSR const *, MatrixCSR const *, MatrixCSR *);
-static CSRErr matrix_prod_nt(MatrixCSR const *, MatrixCSR const *, MatrixCSR *);
-static CSRErr matrix_value_remove(MatrixCSR *, size_t row, size_t col);
-static CSRErr matrix_value_insert(MatrixCSR *, size_t row, size_t col, MATRIX_CSR_SCALAR_T);
-static CSRErr matrix_entry_insert_at(MatrixCSR *, size_t entry_index, Entry);
+static SpmErr matrix_prod_tn(MatrixCSR const *, MatrixCSR const *, MatrixCSR *);
+static SpmErr matrix_prod_nn(MatrixCSR const *, MatrixCSR const *, MatrixCSR *);
+static SpmErr matrix_prod_nt(MatrixCSR const *, MatrixCSR const *, MatrixCSR *);
+static SpmErr matrix_value_remove(MatrixCSR *, size_t row, size_t col);
+static SpmErr matrix_value_insert(MatrixCSR *, size_t row, size_t col, MATRIX_CSR_SCALAR_T);
+static SpmErr matrix_entry_insert_at(MatrixCSR *, size_t entry_index, Entry);
 static void matrix_toggle_transpose_bool(MatrixCSR *);
 static void matrix_transpose_values(MatrixCSR *);
 static void matrix_rebuild_col_indexes(MatrixCSR *);
-static CSRErr entry_insert(List *, size_t entry_index, Entry);
+static SpmErr entry_insert(List *, size_t entry_index, Entry);
 static void entry_remove(List *, size_t entry_index);
 static void entry_sort_by_row(List *, size_t start, size_t end);
 static Entry * entry_get_at(MatrixCSR *, size_t row, size_t col);
@@ -116,7 +116,7 @@ MatrixMakeAllocFailed:
 
 
 MatrixCSR * matrix_csr_clone(MatrixCSR const *src) {
-    ListErr err;
+    SpmErr err;
     MatrixCSR *dst = malloc(sizeof(MatrixCSR));
     if (!dst) {
         return NULL;
@@ -131,17 +131,17 @@ MatrixCSR * matrix_csr_clone(MatrixCSR const *src) {
     list_init(&dst->col_indexes, sizeof(size_t), 0);
 
     err = list_cpy(&dst->entries, &src->entries);
-    if (err != LIST_ERR__OK) {
+    if (err != SPM_ERR__OK) {
         goto MatrixCloneListCopyFailed;
     }
 
     err = list_cpy(&dst->row_indexes, &src->row_indexes);
-    if (err != LIST_ERR__OK) {
+    if (err != SPM_ERR__OK) {
         goto MatrixCloneListCopyFailed;
     }
 
     err = list_cpy(&dst->col_indexes, &src->col_indexes);
-    if (err != LIST_ERR__OK) {
+    if (err != SPM_ERR__OK) {
         goto MatrixCloneListCopyFailed;
     }
 
@@ -185,7 +185,7 @@ MATRIX_CSR_SCALAR_T matrix_csr_get(MatrixCSR const *m, size_t row, size_t col) {
 };
 
 
-CSRErr matrix_csr_set(
+SpmErr matrix_csr_set(
     MatrixCSR *m,
     size_t row,
     size_t col,
@@ -194,14 +194,14 @@ CSRErr matrix_csr_set(
     if (__MATRIX_CSR_IS_TRANSPOSED(m)) size_swap(&row, &col);
 
     if (row >= m->row_count || col >= m->col_count) {
-        return CSR_ERR__OUT_INDEX;
+        return SPM_ERR__OUT_INDEX;
     }
 
     Entry * entry = entry_get_at(m, row, col);
     int new_value_is_zero = MATRIX_CSR_SCALAR_IS_ZERO(value);
 
     if (!entry && new_value_is_zero) {
-        return CSR_ERR__OK;
+        return SPM_ERR__OK;
     } else if (!entry && !new_value_is_zero) {
         return matrix_value_insert(m, row, col, value);
     } else if (entry && new_value_is_zero) {
@@ -210,7 +210,7 @@ CSRErr matrix_csr_set(
         entry->value = value;
     }
 
-    return CSR_ERR__OK;
+    return SPM_ERR__OK;
 };
 
 
@@ -221,7 +221,7 @@ inline void matrix_csr_transpose(MatrixCSR *m) {
 
 
 MatrixCSR * matrix_csr_prod(MatrixCSR const *A, MatrixCSR const *B) {
-    CSRErr err;
+    SpmErr err;
     size_t const common_count = matrix_csr_get_col_count(A);
     if (common_count != matrix_csr_get_row_count(B)) {
         goto MatrixProdDimErr;
@@ -267,32 +267,32 @@ MatrixProdDimErr:
 };
 
 
-CSRErr matrix_prod_tn(
+SpmErr matrix_prod_tn(
     MatrixCSR const *A,
     MatrixCSR const *B,
     MatrixCSR *C
 ) {
     MatrixCSR *At = matrix_csr_clone(A);
     if (!At) {
-        return CSR_ERR__ALLOC;
+        return SPM_ERR__ALLOC;
     }
 
     matrix_transpose_values(At);
     matrix_toggle_transpose_bool(At);
 
-    CSRErr err = matrix_prod_nn(At, B, C);
+    SpmErr err = matrix_prod_nn(At, B, C);
 
     matrix_csr_destroy(At);
     return err;
 }
 
 
-CSRErr matrix_prod_nn(
+SpmErr matrix_prod_nn(
     MatrixCSR const *A,
     MatrixCSR const *B,
     MatrixCSR *C
 ) {
-    CSRErr err = CSR_ERR__OK;
+    SpmErr err = SPM_ERR__OK;
     size_t const row_count = matrix_csr_get_row_count(C);
     size_t const col_count = matrix_csr_get_col_count(C);
 
@@ -321,21 +321,21 @@ CSRErr matrix_prod_nn(
 
             Entry entry = {.value=value, .col_index=col, .row_index=row};
             err = matrix_entry_insert_at(C, list_get_count(&C->entries), entry);
-            if (err != CSR_ERR__OK) {
+            if (err != SPM_ERR__OK) {
                 return err;
             }
         }
     }
-    return CSR_ERR__OK;
+    return SPM_ERR__OK;
 }
 
 
-CSRErr matrix_prod_nt(
+SpmErr matrix_prod_nt(
     MatrixCSR const *A,
     MatrixCSR const *B,
     MatrixCSR *C
 ) {
-    CSRErr err = CSR_ERR__OK;
+    SpmErr err = SPM_ERR__OK;
     size_t const row_count = matrix_csr_get_row_count(C);
     size_t const col_count = matrix_csr_get_col_count(C);
 
@@ -375,16 +375,16 @@ CSRErr matrix_prod_nt(
 
             Entry entry = {.value=value, .col_index=col, .row_index=row};
             err = matrix_entry_insert_at(C, list_get_count(&C->entries), entry);
-            if (err != CSR_ERR__OK) {
+            if (err != SPM_ERR__OK) {
                 return err;
             }
         }
     }
-    return CSR_ERR__OK;
+    return SPM_ERR__OK;
 }
 
 
-inline CSRErr matrix_value_insert(
+inline SpmErr matrix_value_insert(
     MatrixCSR *m,
     size_t row,
     size_t col,
@@ -396,12 +396,12 @@ inline CSRErr matrix_value_insert(
 }
 
 
-CSRErr matrix_entry_insert_at(MatrixCSR *m, size_t index, Entry entry) {
-    CSRErr err;
+SpmErr matrix_entry_insert_at(MatrixCSR *m, size_t index, Entry entry) {
+    SpmErr err;
 
     err = entry_insert(&m->entries, index, entry);
 
-    if (err != CSR_ERR__OK) {
+    if (err != SPM_ERR__OK) {
         return err;
     }
 
@@ -415,11 +415,11 @@ CSRErr matrix_entry_insert_at(MatrixCSR *m, size_t index, Entry entry) {
         *(size_t*)list_at(&m->col_indexes, j + 1) += 1;
     }
 
-    return CSR_ERR__OK;
+    return SPM_ERR__OK;
 };
 
 
-CSRErr matrix_value_remove(
+SpmErr matrix_value_remove(
     MatrixCSR *m,
     size_t row,
     size_t col
@@ -437,7 +437,7 @@ CSRErr matrix_value_remove(
         *(size_t*)list_at(&m->col_indexes, j + 1) -= 1;
     }
 
-    return CSR_ERR__OK;
+    return SPM_ERR__OK;
 }
 
 
@@ -514,17 +514,17 @@ void matrix_rebuild_col_indexes(MatrixCSR *m) {
 }
 
 
-CSRErr entry_insert(List *entries, size_t entry_index, Entry entry) {
-    ListErr err = list_insert_at(entries, entry_index, 1);
+SpmErr entry_insert(List *entries, size_t entry_index, Entry entry) {
+    SpmErr err = list_insert_at(entries, entry_index, 1);
     switch (err) {
-        case CSR_ERR__OK: break;
-        case LIST_ERR__ALLOC: return CSR_ERR__ALLOC;
-        default: return CSR_ERR__UNKNOWN;
+        case SPM_ERR__OK: break;
+        case SPM_ERR__ALLOC: return SPM_ERR__ALLOC;
+        default: return SPM_ERR__UNKNOWN;
     }
 
     *(Entry *)list_at(entries, entry_index) = entry;
 
-    return CSR_ERR__OK;
+    return SPM_ERR__OK;
 };
 
 

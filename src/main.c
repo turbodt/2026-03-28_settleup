@@ -357,10 +357,10 @@ int test_matrix_006(void) {
     MatrixCSR *m = matrix_csr_make(3, 3);
     ASSERT_NOT_NULL(m);
 
-    ASSERT_EQ(CSR_ERR__OUT_INDEX, matrix_csr_set(m, 3, 0, 1.0));
-    ASSERT_EQ(CSR_ERR__OUT_INDEX, matrix_csr_set(m, 100, 0, 1.0));
+    ASSERT_EQ(SPM_ERR__OUT_INDEX, matrix_csr_set(m, 3, 0, 1.0));
+    ASSERT_EQ(SPM_ERR__OUT_INDEX, matrix_csr_set(m, 100, 0, 1.0));
 
-    ASSERT_EQ(CSR_ERR__OUT_INDEX, matrix_csr_set(m, 0, 3, 1.0));
+    ASSERT_EQ(SPM_ERR__OUT_INDEX, matrix_csr_set(m, 0, 3, 1.0));
 
     ASSERT_EQ(0.0, matrix_csr_get(m, 3, 3));
     ASSERT_EQ(0.0, matrix_csr_get(m, 0, 10));
@@ -371,7 +371,7 @@ int test_matrix_006(void) {
     matrix_csr_transpose(m2);
 
     ASSERT_NOT(matrix_csr_set(m2, 3, 1, 5.0));
-    ASSERT_EQ(CSR_ERR__OUT_INDEX, matrix_csr_set(m2, 1, 3, 5.0));
+    ASSERT_EQ(SPM_ERR__OUT_INDEX, matrix_csr_set(m2, 1, 3, 5.0));
 
     matrix_csr_destroy(m);
     matrix_csr_destroy(m2);

@@ -4,17 +4,17 @@
 
 
 #define LIST_MIN_CAPACITY 8
-static ListErr ensure_capacity(List *, size_t capacity);
+static SpmErr ensure_capacity(List *, size_t capacity);
 
 
-ListErr list_init(List *list, size_t item_size, size_t initial_capacity) {
+SpmErr list_init(List *list, size_t item_size, size_t initial_capacity) {
     list->item_size = item_size;
     list->count = 0;
     list->capacity = initial_capacity;
     list->items = NULL;
 
     if (!initial_capacity) {
-        return LIST_ERR__OK;
+        return SPM_ERR__OK;
     }
 
     list->items = malloc(list->item_size * list->capacity);
@@ -22,18 +22,18 @@ ListErr list_init(List *list, size_t item_size, size_t initial_capacity) {
     if (!list->items) {
         list->item_size = 0;
         list->capacity = 0;
-        return LIST_ERR__ALLOC;
+        return SPM_ERR__ALLOC;
     }
 
-    return LIST_ERR__OK;
+    return SPM_ERR__OK;
 };
 
 
-ListErr list_cpy(List *dst, List const *src) {
+SpmErr list_cpy(List *dst, List const *src) {
 
     if (!src->items || !src->capacity) {
         list_clear(dst);
-        return LIST_ERR__OK;
+        return SPM_ERR__OK;
     }
 
     void *new_items;
@@ -44,7 +44,7 @@ ListErr list_cpy(List *dst, List const *src) {
     }
 
     if (!new_items) {
-        return LIST_ERR__ALLOC;
+        return SPM_ERR__ALLOC;
     }
     dst->items = new_items;
     dst->count = src->count;
@@ -53,7 +53,7 @@ ListErr list_cpy(List *dst, List const *src) {
 
     memcpy(dst->items, src->items, src->item_size*src->capacity);
 
-    return LIST_ERR__OK;
+    return SPM_ERR__OK;
 };
 
 
@@ -82,16 +82,16 @@ inline void const * list_atc(List const *list, size_t index) {
 };
 
 
-ListErr list_insert_at(List *list, size_t index, size_t insert_count) {
-    ListErr err;
+SpmErr list_insert_at(List *list, size_t index, size_t insert_count) {
+    SpmErr err;
 
     if (index > list_get_count(list)) {
-        return LIST_ERR__OUT_INDEX;
+        return SPM_ERR__OUT_INDEX;
     }
 
     err = ensure_capacity(list, list_get_count(list) + insert_count);
 
-    if (err != LIST_ERR__OK) {
+    if (err != SPM_ERR__OK) {
         return err;
     }
 
@@ -104,19 +104,19 @@ ListErr list_insert_at(List *list, size_t index, size_t insert_count) {
     }
     list->count += insert_count;
 
-    return LIST_ERR__OK;
+    return SPM_ERR__OK;
 };
 
 
-ListErr list_remove_at(List *list, size_t index, size_t delete_count) {
-    ListErr err;
+SpmErr list_remove_at(List *list, size_t index, size_t delete_count) {
+    SpmErr err;
 
     if (delete_count + index > list_get_count(list)) {
-        return LIST_ERR__OUT_INDEX;
+        return SPM_ERR__OUT_INDEX;
     }
 
     if (delete_count == 0) {
-        return LIST_ERR__OK;
+        return SPM_ERR__OK;
     }
 
     for (size_t i = index + delete_count; i < list->count; i++) {
@@ -130,16 +130,16 @@ ListErr list_remove_at(List *list, size_t index, size_t delete_count) {
     ensure_capacity(list, list->count - delete_count);
     list->count -= delete_count;
 
-    return LIST_ERR__OK;
+    return SPM_ERR__OK;
 };
 
 
-inline ListErr list_append(List *list, size_t insert_count) {
+inline SpmErr list_append(List *list, size_t insert_count) {
     return list_insert_at(list, list->count, insert_count);
 };
 
 
-ListErr ensure_capacity(List *list, size_t capacity) {
+SpmErr ensure_capacity(List *list, size_t capacity) {
     size_t const curr_capacity = list->capacity;
 
     if (capacity < LIST_MIN_CAPACITY) {
@@ -155,7 +155,7 @@ ListErr ensure_capacity(List *list, size_t capacity) {
     }
 
     if (new_capacity == curr_capacity) {
-        return LIST_ERR__OK;
+        return SPM_ERR__OK;
     }
 
     void *new_items;
@@ -166,10 +166,10 @@ ListErr ensure_capacity(List *list, size_t capacity) {
     }
 
     if (!new_items) {
-        return LIST_ERR__ALLOC;
+        return SPM_ERR__ALLOC;
     }
 
     list->items = new_items;
     list->capacity = new_capacity;
-    return LIST_ERR__OK;
+    return SPM_ERR__OK;
 };

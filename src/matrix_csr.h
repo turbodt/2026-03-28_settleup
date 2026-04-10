@@ -3,6 +3,7 @@
 
 
 #include <stddef.h>
+#include "./error.h"
 
 
 #ifndef MATRIX_CSR_SCALAR_T
@@ -36,12 +37,7 @@
 
 
 typedef struct MatrixCSR MatrixCSR;
-typedef enum {
-    CSR_ERR__OK = 0,
-    CSR_ERR__ALLOC = 1,
-    CSR_ERR__OUT_INDEX = 2,
-    CSR_ERR__UNKNOWN = 7,
-} CSRErr;
+
 
 MatrixCSR * matrix_csr_make(size_t row_count, size_t col_count);
 MatrixCSR * matrix_csr_clone(MatrixCSR const *src);
@@ -51,7 +47,7 @@ void matrix_csr_destroy(MatrixCSR *m);
 size_t matrix_csr_get_col_count(MatrixCSR const *m);
 size_t matrix_csr_get_row_count(MatrixCSR const *m);
 MATRIX_CSR_SCALAR_T matrix_csr_get(MatrixCSR const *m, size_t row, size_t col);
-CSRErr matrix_csr_set(
+SpmErr matrix_csr_set(
     MatrixCSR *m,
     size_t row,
     size_t col,

@@ -19,14 +19,16 @@
 
 SPM_LIST_HEADER(size_t, Size, size);
 
+
 typedef struct {
     SPM_SCALAR_T value;
     size_t col_index;
     size_t row_index;
-} Entry;
+} SpmMatrixEntry;
 
-SPM_LIST_HEADER(Entry, Entry, entry);
-SPM_LIST_IMPLEMENTATION(Entry, Entry, entry);
+
+SPM_LIST_HEADER(SpmMatrixEntry, Entry, entry);
+SPM_LIST_IMPLEMENTATION(SpmMatrixEntry, Entry, entry);
 
 
 struct SpmMatrix {
@@ -46,18 +48,18 @@ static SpmErr matrix_prod_nn(SpmMatrix const *, SpmMatrix const *, SpmMatrix *);
 static SpmErr matrix_prod_nt(SpmMatrix const *, SpmMatrix const *, SpmMatrix *);
 static SpmErr matrix_value_remove(SpmMatrix *, size_t row, size_t col);
 static SpmErr matrix_value_insert(SpmMatrix *, size_t row, size_t col, SPM_SCALAR_T);
-static SpmErr matrix_entry_insert_at(SpmMatrix *, size_t entry_index, Entry);
+static SpmErr matrix_entry_insert_at(SpmMatrix *, size_t entry_index, SpmMatrixEntry);
 static void matrix_toggle_transpose_bool(SpmMatrix *);
 static void matrix_transpose_values(SpmMatrix *);
 static void matrix_rebuild_col_indexes(SpmMatrix *);
-static SpmErr entry_insert(SpmListEntry *, size_t entry_index, Entry);
+static SpmErr entry_insert(SpmListEntry *, size_t entry_index, SpmMatrixEntry);
 static void entry_remove(SpmListEntry *, size_t entry_index);
 static void entry_sort_by_row(SpmListEntry *, size_t start, size_t end);
-static Entry * entry_get_at(SpmMatrix *, size_t row, size_t col);
-static Entry const * entry_getc_at(SpmMatrix const *, size_t row, size_t col);
+static SpmMatrixEntry * entry_get_at(SpmMatrix *, size_t row, size_t col);
+static SpmMatrixEntry const * entry_getc_at(SpmMatrix const *, size_t row, size_t col);
 static size_t entry_index_get_at(SpmMatrix const *, size_t row, size_t col);
-static size_t entry_index_get_with_col(Entry *,size_t col, size_t start, size_t end);
-static void entry_swap(Entry *, Entry *);
+static size_t entry_index_get_with_col(SpmMatrixEntry *,size_t col, size_t start, size_t end);
+static void entry_swap(SpmMatrixEntry *, SpmMatrixEntry *);
 static void list_size_swap(SpmListSize *, SpmListSize *);
 static void list_entry_swap(SpmListEntry *, SpmListEntry *);
 static void size_swap(size_t *, size_t *);
@@ -183,7 +185,7 @@ SPM_SCALAR_T spm_matrix_get(SpmMatrix const *m, size_t row, size_t col) {
         return SPM_SCALAR_ZERO;
     }
 
-    Entry const *entry = entry_get_at((SpmMatrix *)m, row, col);
+    SpmMatrixEntry const *entry = entry_get_at((SpmMatrix *)m, row, col);
     if (!entry) {
         return SPM_SCALAR_ZERO;
     }
@@ -203,7 +205,7 @@ SpmErr spm_matrix_set(
         return SPM_ERR__OUT_INDEX;
     }
 
-    Entry * entry = entry_get_at(m, row, col);
+    SpmMatrixEntry * entry = entry_get_at(m, row, col);
     int new_value_is_zero = SPM_SCALAR_IS_ZERO(value);
 
     if (!entry && new_value_is_zero) {
@@ -310,8 +312,8 @@ SpmErr matrix_prod_nn(
             SPM_SCALAR_T value = SPM_SCALAR_ZERO;
 
             for (size_t A_curr = A_start; A_curr < A_end; A_curr++) {
-                Entry const *A_entry = spm_list_entry_atc(&A->entries, A_curr);
-                Entry const *B_entry = entry_getc_at(B, A_entry->col_index,col);
+                SpmMatrixEntry const *A_entry = spm_list_entry_atc(&A->entries, A_curr);
+                SpmMatrixEntry const *B_entry = entry_getc_at(B, A_entry->col_index,col);
                 if (!B_entry) {
                     continue;
                 }
@@ -325,7 +327,7 @@ SpmErr matrix_prod_nn(
                 continue;
             }
 
-            Entry entry = {.value=value, .col_index=col, .row_index=row};
+            SpmMatrixEntry entry = {.value=value, .col_index=col, .row_index=row};
             err = matrix_entry_insert_at(C, spm_list_entry_get_count(&C->entries), entry);
             if (err != SPM_ERR__OK) {
                 return err;
@@ -358,8 +360,8 @@ SpmErr matrix_prod_nt(
             size_t B_curr = B_start;
 
             while (A_curr < A_end && B_curr < B_end) {
-                Entry const *A_entry = spm_list_entry_atc(&A->entries, A_curr);
-                Entry const *B_entry = spm_list_entry_atc(&B->entries, B_curr);
+                SpmMatrixEntry const *A_entry = spm_list_entry_atc(&A->entries, A_curr);
+                SpmMatrixEntry const *B_entry = spm_list_entry_atc(&B->entries, B_curr);
 
                 if (A_entry->col_index < B_entry->col_index) {
                     A_curr++;
@@ -379,7 +381,7 @@ SpmErr matrix_prod_nt(
                 continue;
             }
 
-            Entry entry = {.value=value, .col_index=col, .row_index=row};
+            SpmMatrixEntry entry = {.value=value, .col_index=col, .row_index=row};
             err = matrix_entry_insert_at(C, spm_list_entry_get_count(&C->entries), entry);
             if (err != SPM_ERR__OK) {
                 return err;
@@ -397,12 +399,12 @@ inline SpmErr matrix_value_insert(
     SPM_SCALAR_T value
 ) {
     size_t index = entry_index_get_at(m, row, col);
-    Entry entry = {.value=value, .col_index=col, .row_index=row};
+    SpmMatrixEntry entry = {.value=value, .col_index=col, .row_index=row};
     return matrix_entry_insert_at(m, index, entry);
 }
 
 
-SpmErr matrix_entry_insert_at(SpmMatrix *m, size_t index, Entry entry) {
+SpmErr matrix_entry_insert_at(SpmMatrix *m, size_t index, SpmMatrixEntry entry) {
     SpmErr err;
 
     err = entry_insert(&m->entries, index, entry);
@@ -461,7 +463,7 @@ void matrix_transpose_values(SpmMatrix *m) {
     list_size_swap(&m->row_indexes, &m->col_indexes);
     size_t const entry_count = spm_list_entry_get_count(&m->entries);
     for (size_t i = 0; i < entry_count; i++) {
-        Entry *entry = spm_list_entry_at(&m->entries, i);
+        SpmMatrixEntry *entry = spm_list_entry_at(&m->entries, i);
         size_swap(&entry->row_index, &entry->col_index);
     }
 
@@ -469,9 +471,9 @@ void matrix_transpose_values(SpmMatrix *m) {
         return;
     }
 
-    Entry *entries = (Entry *)m->entries.items;
-    size_t *new_row_starts = (size_t *)m->row_indexes.items;
-    size_t *write_pointers = (size_t *)m->col_indexes.items;
+    SpmMatrixEntry *entries = m->entries.items;
+    size_t *new_row_starts = m->row_indexes.items;
+    size_t *write_pointers = m->col_indexes.items;
     for (size_t i = 0; i < m->row_count; i++) {
         write_pointers[i] = new_row_starts[i];
     }
@@ -479,7 +481,7 @@ void matrix_transpose_values(SpmMatrix *m) {
     for (size_t orig_index = 0; orig_index < m->row_count; orig_index++) {
         while (write_pointers[orig_index] < new_row_starts[orig_index + 1]) {
             size_t curr_idx = write_pointers[orig_index];
-            Entry *e = &entries[curr_idx];
+            SpmMatrixEntry *e = &entries[curr_idx];
 
             size_t target_row = e->row_index;
             size_t dest_idx = write_pointers[target_row];
@@ -501,8 +503,8 @@ void matrix_rebuild_col_indexes(SpmMatrix *m) {
     size_t entry_count = m->entries.count;
     if (entry_count == 0) return;
 
-    Entry *entries = (Entry *)m->entries.items;
-    size_t *col_indexes = (size_t *)m->col_indexes.items;
+    SpmMatrixEntry *entries = m->entries.items;
+    size_t *col_indexes = m->col_indexes.items;
     size_t col_count = m->col_count;
 
     memset(col_indexes, 0, (col_count + 1) * sizeof(size_t));
@@ -520,7 +522,7 @@ void matrix_rebuild_col_indexes(SpmMatrix *m) {
 }
 
 
-SpmErr entry_insert(SpmListEntry *entries, size_t entry_index, Entry entry) {
+SpmErr entry_insert(SpmListEntry *entries, size_t entry_index, SpmMatrixEntry entry) {
     SpmErr err = spm_list_entry_insert_at(entries, entry_index, 1);
     switch (err) {
         case SPM_ERR__OK: break;
@@ -550,8 +552,8 @@ void entry_sort_by_row(SpmListEntry *entries, size_t start, size_t end) {
 
     while (middle < end) {
         for (size_t i = middle; i > 0; i--) {
-            Entry * a = spm_list_entry_at(entries, i-1);
-            Entry * b = spm_list_entry_at(entries, i);
+            SpmMatrixEntry * a = spm_list_entry_at(entries, i-1);
+            SpmMatrixEntry * b = spm_list_entry_at(entries, i);
             if (a->row_index > b->row_index) {
                 entry_swap(a,b);
             } else {
@@ -563,7 +565,7 @@ void entry_sort_by_row(SpmListEntry *entries, size_t start, size_t end) {
 }
 
 
-Entry * entry_get_at(SpmMatrix *m, size_t row, size_t col) {
+SpmMatrixEntry * entry_get_at(SpmMatrix *m, size_t row, size_t col) {
     size_t entry_index = entry_index_get_at(m, row, col);
     size_t entry_index_end = spm_list_size_get(&m->row_indexes, row+1);
 
@@ -571,7 +573,7 @@ Entry * entry_get_at(SpmMatrix *m, size_t row, size_t col) {
         return NULL;
     }
 
-    Entry * entry = spm_list_entry_at(&m->entries, entry_index);
+    SpmMatrixEntry * entry = spm_list_entry_at(&m->entries, entry_index);
 
     if (entry->col_index != col) {
         return NULL;
@@ -580,7 +582,7 @@ Entry * entry_get_at(SpmMatrix *m, size_t row, size_t col) {
 }
 
 
-inline Entry const * entry_getc_at(SpmMatrix const *m, size_t row, size_t col) {
+inline SpmMatrixEntry const * entry_getc_at(SpmMatrix const *m, size_t row, size_t col) {
     return entry_get_at((SpmMatrix *)m, row, col);
 }
 
@@ -602,7 +604,7 @@ size_t entry_index_get_at(SpmMatrix const *m, size_t row, size_t col) {
 
 
 size_t entry_index_get_with_col(
-    Entry *entries,
+    SpmMatrixEntry *entries,
     size_t col,
     size_t start,
     size_t end
@@ -622,8 +624,8 @@ size_t entry_index_get_with_col(
 };
 
 
-inline void entry_swap(Entry *a, Entry *b) {
-    Entry c = *a;
+inline void entry_swap(SpmMatrixEntry *a, SpmMatrixEntry *b) {
+    SpmMatrixEntry c = *a;
     *a = *b;
     *b = c;
 };

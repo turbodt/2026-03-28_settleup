@@ -10,11 +10,11 @@
 #endif
 
 
-#define __SPM_BOOL__TRANSPOSED_OFFSET 00
+#define __SPM_MATRIX_BOOL__TRANSPOSED_OFFSET 0
 
 
-#define __SPM_IS_TRANSPOSED(m) \
-    ((1 << __SPM_BOOL__TRANSPOSED_OFFSET) & (m)->bools)
+#define __SPM_MATRIX_IS_TRANSPOSED(m) \
+    ((1 << __SPM_MATRIX_BOOL__TRANSPOSED_OFFSET) & (m)->bools)
 
 
 SPM_LIST_HEADER(size_t, Size, size);
@@ -191,17 +191,17 @@ void spm_matrix_destroy(SpmMatrix *m) {
 
 
 inline size_t spm_matrix_get_col_count(SpmMatrix const *m) {
-    return __SPM_IS_TRANSPOSED(m) ? m->row_count : m->col_count;
+    return __SPM_MATRIX_IS_TRANSPOSED(m) ? m->row_count : m->col_count;
 };
 
 
 inline size_t spm_matrix_get_row_count(SpmMatrix const *m) {
-    return __SPM_IS_TRANSPOSED(m) ? m->col_count : m->row_count;
+    return __SPM_MATRIX_IS_TRANSPOSED(m) ? m->col_count : m->row_count;
 };
 
 
 SPM_SCALAR_T spm_matrix_get(SpmMatrix const *m, size_t row, size_t col) {
-    if (__SPM_IS_TRANSPOSED(m)) size_swap(&row, &col);
+    if (__SPM_MATRIX_IS_TRANSPOSED(m)) size_swap(&row, &col);
 
     if (row >= m->row_count || col >= m->col_count) {
         return SPM_SCALAR_ZERO;
@@ -221,7 +221,7 @@ SpmErr spm_matrix_set(
     size_t col,
     SPM_SCALAR_T value
 ) {
-    if (__SPM_IS_TRANSPOSED(m)) size_swap(&row, &col);
+    if (__SPM_MATRIX_IS_TRANSPOSED(m)) size_swap(&row, &col);
 
     if (row >= m->row_count || col >= m->col_count) {
         return SPM_ERR__OUT_INDEX;
@@ -265,14 +265,14 @@ SpmMatrix * spm_matrix_prod(SpmMatrix const *A, SpmMatrix const *B) {
         goto MatrixProdAllocErr;
     }
 
-    if (__SPM_IS_TRANSPOSED(A)) {
-        if (__SPM_IS_TRANSPOSED(B)) {
+    if (__SPM_MATRIX_IS_TRANSPOSED(A)) {
+        if (__SPM_MATRIX_IS_TRANSPOSED(B)) {
             matrix_transpose_values(C);
             err = matrix_prod_nn(B, A, C);
         } else {
             err = matrix_prod_tn(A, B, C);
         }
-    } else if (__SPM_IS_TRANSPOSED(B)) {
+    } else if (__SPM_MATRIX_IS_TRANSPOSED(B)) {
         err = matrix_prod_nt(A, B, C);
     } else {
         err = matrix_prod_nn(A, B, C);
@@ -283,7 +283,7 @@ SpmMatrix * spm_matrix_prod(SpmMatrix const *A, SpmMatrix const *B) {
     }
 
 
-    if (__SPM_IS_TRANSPOSED(A) && __SPM_IS_TRANSPOSED(B)) {
+    if (__SPM_MATRIX_IS_TRANSPOSED(A) && __SPM_MATRIX_IS_TRANSPOSED(B)) {
         matrix_transpose_values(C);
     }
 
@@ -491,7 +491,7 @@ SpmErr matrix_value_remove(
 
 
 void matrix_toggle_transpose_bool(SpmMatrix *m) {
-    uint32_t mask = 1 << __SPM_BOOL__TRANSPOSED_OFFSET;
+    uint32_t mask = 1 << __SPM_MATRIX_BOOL__TRANSPOSED_OFFSET;
     uint32_t is_transposed = m->bools & mask;
     is_transposed = mask - is_transposed;
 

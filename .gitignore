@@ -1,2 +1,6 @@
 .ccls-cache/
 bin/
+lib/
+build/
+test/lib/
+test/build/

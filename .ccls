@@ -1,3 +1,4 @@
 gcc
 %c -I./src
+%c -I./include
 -std=c99

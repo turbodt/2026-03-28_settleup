@@ -1,15 +1,15 @@
-LIB_NAME ?= matrix_csr
+LIB_NAME ?= spm
 OBJ_DIR ?= build
 WASM_OBJ_DIR ?= build/wasm
 LIB_DIR ?= $(realpath ./)/lib
-TOOLS_DIR ?= $(realpath ./)/tools
 WASM_DIR ?= $(realpath ./)/dist
 WASI_SDK_PATH ?= ${WASI_SDK_PATH}
-SRC_DIR = ./src
+SRC_DIR = $(realpath ./)/src
+INCLUDE_DIR = $(realpath ./)/include
 
 
 INCLUDES = \
-	-I./include \
+	-I${INCLUDE_DIR} \
 	-I${SRC_DIR} \
 
 #
@@ -100,9 +100,23 @@ $(WASM_OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 		--sysroot=$(WASI_SDK_PATH)/share/wasi-sysroot \
 		$(INCLUDES) -c $< -o $@
 
+
+run-tests: tests
+	./bin/tests
+
+tests:
+	$(MAKE) clean
+	$(MAKE) all
+	$(MAKE) clean -C ./tests
+	$(MAKE) -C ./tests \
+		MAIN_DIR=$(realpath ./) \
+		EXTERNAL_INCLUDES="$(INCLUDES)" \
+		EXTERNAL_LIBRARIES="-L$(LIB_DIR) -lspm"
+
 clean:
+	$(MAKE) clean -C ./tests
 	rm -rf $(WASM_OUT)
 	rm -rf $(LIB_DIR)
 	rm -rf $(OBJ_DIR) $(SHARED_LIB) $(STATIC_LIB)
 
-.PHONY: all clean wasm tools
+.PHONY: all clean wasm tests run-tests

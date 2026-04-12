@@ -1,5 +1,4 @@
-#include "./list.h"
-#include "./matrix.h"
+#include <spm.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>

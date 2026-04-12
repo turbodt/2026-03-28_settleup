@@ -100,7 +100,6 @@ static SpmErr entry_insert( \
     SpmMatrix##T_SFX##Entry \
 ); \
 static void entry_remove(SpmList##T_SFX##Entry *, size_t entry_index); \
-static void entry_sort_by_row(SpmList##T_SFX##Entry *, size_t start, size_t end); \
 static SpmMatrix##T_SFX##Entry * entry_get_at(SpmMatrix##T_SFX *, size_t row, size_t col); \
 static SpmMatrix##T_SFX##Entry const * entry_getc_at( \
     SpmMatrix##T_SFX const *, \
@@ -616,30 +615,6 @@ SpmErr entry_insert( \
 inline void entry_remove(SpmList##T_SFX##Entry *entries, size_t entry_index) { \
     spm_list_##F_SFX##_entry_remove_at(entries, entry_index, 1); \
 }; \
- \
- \
-void entry_sort_by_row(SpmList##T_SFX##Entry *entries, size_t start, size_t end) { \
-    if (end <= start + 1) { \
-        return; \
-    } \
- \
-    size_t middle = start + (end - start)/2; \
-    entry_sort_by_row(entries, start, middle); \
-    entry_sort_by_row(entries, middle, end); \
- \
-    while (middle < end) { \
-        for (size_t i = middle; i > 0; i--) { \
-            SpmMatrix##T_SFX##Entry * a = spm_list_##F_SFX##_entry_at(entries, i-1); \
-            SpmMatrix##T_SFX##Entry * b = spm_list_##F_SFX##_entry_at(entries, i); \
-            if (a->row_index > b->row_index) { \
-                entry_swap(a,b); \
-            } else { \
-                break; \
-            } \
-        } \
-        middle++; \
-    } \
-} \
  \
  \
 SpmMatrix##T_SFX##Entry * entry_get_at(SpmMatrix##T_SFX *m, size_t row, size_t col) { \

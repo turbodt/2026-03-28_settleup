@@ -155,7 +155,6 @@ SpmErr spm_list_##F_SFX##_insert_at(SpmList##T_SFX *list, size_t index, size_t i
  \
  \
 SpmErr spm_list_##F_SFX##_remove_at(SpmList##T_SFX *list, size_t index, size_t delete_count) { \
-    SpmErr err; \
  \
     if (delete_count + index > spm_list_##F_SFX##_get_count(list)) { \
         return SPM_ERR__OUT_INDEX; \
